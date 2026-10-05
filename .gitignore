@@ -1,0 +1,13 @@
+venv/
+__pycache__/
+*.pyc
+.env
+.streamlit/secrets.toml
+.pytest_cache/
+.chroma/
+data/documents/*
+data/processed/*
+*.sqlite3
+*.log
+*.tmp
+*.temp
