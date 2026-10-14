@@ -4,7 +4,6 @@ import {
   Home,
   FileText,
   MessageSquare,
-  Share2,
   ArrowLeftRight,
   Settings,
   Briefcase
@@ -17,7 +16,6 @@ export default function Sidebar() {
     { id: 'Dashboard', label: 'Dashboard', icon: Home },
     { id: 'Documents', label: 'Documents', icon: FileText },
     { id: 'Ask AI', label: 'Ask AI', icon: MessageSquare },
-    { id: 'Relationships', label: 'Relationships', icon: Share2 },
     { id: 'Compare Versions', label: 'Compare Versions', icon: ArrowLeftRight },
     { id: 'Settings', label: 'Settings', icon: Settings },
   ];

@@ -9,7 +9,6 @@ from ingestion.pdf_parser import extract_text_from_pdf
 from ingestion.chunker import create_chunks
 from ingestion.table_extractor import create_table_chunks, extract_tables_from_pdf
 from extraction.traceability import extract_traceable_entities
-from extraction.relationship_extractor import extract_relationships
 from rag.uploaded_document_db import build_uploaded_database
 from database.versioning import get_document_version
 from database.access_control import (
@@ -93,7 +92,6 @@ def process_uploaded_pdf(uploaded_file, *, user_id=None, project_id=None):
     table_chunks = create_table_chunks(tables, start_chunk_id=len(text_chunks))
     chunks = text_chunks + table_chunks
     traceability = extract_traceable_entities(pages)
-    relationships = extract_relationships(pages)
     document_metadata = extract_document_metadata(pages)
 
     processed_dir = PROJECT_ROOT / "data" / "processed"
@@ -177,19 +175,6 @@ def process_uploaded_pdf(uploaded_file, *, user_id=None, project_id=None):
     with open(pages_path, "w", encoding="utf-8") as file:
         json.dump(scoped_pages, file, indent=4, ensure_ascii=False)
 
-    relationship_path = artifact_dir / "relationships.json"
-    relationships = [
-        {
-            **record,
-            "user_id": int(user_id),
-            "project_id": project["id"],
-            "document_id": version_info["document_id"],
-        }
-        for record in relationships
-    ]
-    with open(relationship_path, "w", encoding="utf-8") as file:
-        json.dump(relationships, file, indent=4, ensure_ascii=False)
-
     build_uploaded_database(
         str(output_path), user_id=user_id, project_id=project["id"]
     )
@@ -221,8 +206,6 @@ def process_uploaded_pdf(uploaded_file, *, user_id=None, project_id=None):
         "traceability_records": len(traceability),
         "traceability_path": str(traceability_path),
         "pages_path": str(pages_path),
-        "relationship_records": len(relationships),
-        "relationship_path": str(relationship_path),
         **document_metadata,
         "artifact_dir": str(artifact_dir),
     }

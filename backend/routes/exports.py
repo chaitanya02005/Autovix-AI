@@ -8,7 +8,6 @@ from backend.dependencies import get_authorized_project, get_current_user
 from backend.export_utils import export_csv_bytes, export_json_bytes
 from backend.services import (
     get_document_traceability,
-    get_project_relationships,
     get_project_traceability,
 )
 from database.audit_log import log_event
@@ -24,7 +23,7 @@ def _csv_content(records):
 @router.get("/{artifact}", summary="Export project analysis as JSON or CSV")
 def export_project_data(
     project_id: int,
-    artifact: Literal["traceability", "relationships", "comparison"],
+    artifact: Literal["traceability", "comparison"],
     format: Literal["json", "csv"] = Query(default="json"),
     baseline_document_id: str | None = None,
     current_document_id: str | None = None,
@@ -33,8 +32,6 @@ def export_project_data(
 ):
     if artifact == "traceability":
         records = get_project_traceability(current_user["id"], project["id"])
-    elif artifact == "relationships":
-        records = get_project_relationships(current_user["id"], project["id"])
     elif artifact == "comparison":
         if not baseline_document_id or not current_document_id:
             raise HTTPException(

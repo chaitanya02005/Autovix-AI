@@ -7,7 +7,6 @@ import Toast from './components/Toast';
 import Dashboard from './pages/Dashboard';
 import Documents from './pages/Documents';
 import AskAI from './pages/AskAI';
-import Relationships from './pages/Relationships';
 import CompareVersions from './pages/CompareVersions';
 import Settings from './pages/Settings';
 
@@ -31,8 +30,6 @@ export default function App() {
         return <Documents />;
       case 'Ask AI':
         return <AskAI />;
-      case 'Relationships':
-        return <Relationships />;
       case 'Compare Versions':
         return <CompareVersions />;
       case 'Settings':

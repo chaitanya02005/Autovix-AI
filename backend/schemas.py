@@ -39,7 +39,6 @@ class DocumentResponse(BaseModel):
     pages: int
     chunks: int
     traceability_count: int
-    relationship_count: int
     upload_timestamp: str | None = None
 
 
@@ -56,26 +55,6 @@ class QueryResponse(BaseModel):
     project_id: int
     document_id: str | None
     context: list[dict[str, Any]] = Field(default_factory=list)
-
-
-class GraphNode(BaseModel):
-    id: str
-    label: str
-
-
-class GraphEdge(BaseModel):
-    id: int
-    source: str
-    target: str
-    relationship: str
-    page: int | str | None = None
-    project_id: int | None = None
-    document_id: str | None = None
-
-
-class RelationshipGraphResponse(BaseModel):
-    nodes: list[GraphNode]
-    edges: list[GraphEdge]
 
 
 class ReviewCreate(BaseModel):
@@ -116,7 +95,6 @@ class DocumentDetailResponse(DocumentResponse):
 class ProjectStatsResponse(BaseModel):
     documents_count: int
     entities_count: int
-    relationships_count: int
     questions_count: int
     active_document: dict[str, Any] | None = None
 

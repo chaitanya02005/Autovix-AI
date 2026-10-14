@@ -14,7 +14,6 @@ export function AppProvider({ children }) {
   const [stats, setStats] = useState({
     documents_count: 0,
     entities_count: 0,
-    relationships_count: 0,
     questions_count: 0,
     active_document: null,
   });
@@ -70,7 +69,6 @@ export function AppProvider({ children }) {
             pages: docsData[0].pages,
             chunks: docsData[0].chunks,
             traceability_records: docsData[0].traceability_count,
-            relationship_records: docsData[0].relationship_count,
             status: 'Processed',
           });
         }

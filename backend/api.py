@@ -13,7 +13,6 @@ from backend.routes import (
     exports,
     projects,
     query,
-    relationships,
     review,
     traceability,
 )
@@ -91,7 +90,6 @@ _routers = [
     documents.router,
     query.router,
     traceability.router,
-    relationships.router,
     comparison.router,
     review.router,
     audit.router,

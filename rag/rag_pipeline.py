@@ -28,22 +28,6 @@ def metadata_query_type(query):
     return None
 
 
-def load_relationships(*, user_id=None, project_id=None):
-    if user_id is None or project_id is None:
-        return []
-    project = require_project_access(user_id, project_id)
-    relationships = []
-    for document in list_project_documents(user_id, project["id"]):
-        artifact_dir = document.get("artifact_dir")
-        if not artifact_dir:
-            continue
-        relationship_path = Path(artifact_dir) / "relationships.json"
-        if relationship_path.exists():
-            with relationship_path.open("r", encoding="utf-8") as file:
-                relationships.extend(json.load(file))
-    return relationships
-
-
 def build_prompt(query, context_chunks):
     """Build a prompt string from the query and retrieved context chunks."""
     context_text = "\n\n".join(
@@ -95,7 +79,6 @@ def retrieve_context(
 
     ranked_results = rerank_results(results)
     confidence = calculate_confidence(ranked_results)
-    relationships = load_relationships(user_id=user_id, project_id=project_id)
 
     selected = ranked_results[:top_k]
 
@@ -110,7 +93,6 @@ def retrieve_context(
         "ranked_results": selected,
         "confidence": confidence,
         "collection_name": collection_name,
-        "relationships": relationships,
         "metadata_query_type": query_type,
         "query": query,
     }

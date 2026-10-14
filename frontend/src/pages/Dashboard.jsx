@@ -4,7 +4,6 @@ import { api } from '../api';
 import {
   FileText,
   Box,
-  Share2,
   MessageSquare,
   ArrowRight,
   RefreshCw,
@@ -146,8 +145,8 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* 4-column Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      {/* 3-column Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {/* Documents */}
         <div className="bg-white border border-[#e2e8f0] rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-4">
@@ -186,23 +185,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Relationships */}
-        <div className="bg-white border border-[#e2e8f0] rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-              <Share2 className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-[#0f172a]">
-                {(stats.relationships_count || 0).toLocaleString()}
-              </div>
-              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
-                Relationships
-              </div>
-              <div className="text-xs text-slate-500 mt-0.5">From active document</div>
-            </div>
-          </div>
-        </div>
 
         {/* Questions */}
         <div className="bg-white border border-[#e2e8f0] rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow border-amber-200/50">

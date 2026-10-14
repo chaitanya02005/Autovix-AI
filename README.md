@@ -1,13 +1,12 @@
 # Autovix
 
 ## Description
-Autovix is an intelligent, multi-tenant workspace designed for analyzing and managing **AUTOSAR High-Level Design (HLD) documents**. It automatically ingests massive PDF specifications, extracts architecture entities (components, ports, services), and generates visual relationships. Additionally, it features an interactive AI assistant powered by Retrieval-Augmented Generation (RAG) that answers architectural questions with guaranteed traceability back to the exact source pages.
+Autovix is an intelligent, multi-tenant workspace designed for analyzing and managing **AUTOSAR High-Level Design (HLD) documents**. It automatically ingests massive PDF specifications and extracts architecture entities (components, ports, services). Additionally, it features an interactive AI assistant powered by Retrieval-Augmented Generation (RAG) that answers architectural questions with guaranteed traceability back to the exact source pages.
 
 **Key Features:**
 - **Intelligent Parsing:** Reads text, tables, and scanned architecture diagrams using OCR.
 - **Automated Extraction:** Extracts Components, PPorts, RPorts, and Service Instances.
 - **Traceable AI Chat:** Natural language questions are strictly grounded in your documents.
-- **Visual Graph:** Auto-generated dependency graphs between software components.
 - **Version Comparison:** Compare document versions to see added, removed, or modified components.
 
 ### Architecture Diagram
@@ -75,7 +74,7 @@ Autovix is an intelligent, multi-tenant workspace designed for analyzing and man
 2. Visit `http://localhost:5173` in your browser.
 3. **Upload:** Go to the "Documents" tab and upload an AUTOSAR PDF.
 4. **Chat:** Go to "Ask AI" to ask questions about your architecture.
-5. **Explore:** View the interactive relationship graph or compare different document versions.
+5. **Compare:** Compare different document versions to track evolution.
 
 ## Contributing
 We welcome contributions! To contribute:

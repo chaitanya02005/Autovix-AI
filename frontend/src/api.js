@@ -151,15 +151,7 @@ export const api = {
     });
   },
 
-  // Relationships & Graph
-  async getRelationships(projectId, params = {}) {
-    const query = new URLSearchParams(params).toString();
-    return request(`/projects/${projectId}/relationships${query ? `?${query}` : ''}`);
-  },
 
-  async getRelationshipGraph(projectId) {
-    return request(`/projects/${projectId}/relationships/graph`);
-  },
 
   // Traceability Entities
   async getTraceability(projectId, params = {}) {

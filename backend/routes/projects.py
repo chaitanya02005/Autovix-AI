@@ -56,8 +56,6 @@ def get_project_stats(
     current_user: dict = Depends(get_current_user),
     project: dict = Depends(get_authorized_project),
 ):
-    import json
-    from pathlib import Path
     from database.access_control import get_project_document, list_project_documents
     from database.audit_log import read_logs
 
@@ -65,18 +63,9 @@ def get_project_stats(
     docs_count = len(docs)
     active_doc = None
     entities_count = 0
-    relationships_count = 0
 
     if docs:
         latest = get_project_document(current_user["id"], project["id"], docs[0]["document_id"])
-        artifact_dir = Path(latest["artifact_dir"]) if latest.get("artifact_dir") else None
-        rel_path = (artifact_dir / "relationships.json") if artifact_dir else None
-        if rel_path and rel_path.exists():
-            try:
-                with rel_path.open("r", encoding="utf-8") as f:
-                    relationships_count = len(json.load(f))
-            except Exception:
-                relationships_count = 0
         entities_count = latest.get("traceability_count", 0)
         active_doc = {
             "document_id": latest["document_id"],
@@ -85,7 +74,6 @@ def get_project_stats(
             "pages": latest["page_count"],
             "chunks": latest["chunk_count"],
             "traceability_records": entities_count,
-            "relationship_records": relationships_count,
             "status": "Processed" if latest["page_count"] > 0 else "Processing",
         }
 
@@ -95,7 +83,6 @@ def get_project_stats(
     return ProjectStatsResponse(
         documents_count=docs_count,
         entities_count=entities_count,
-        relationships_count=relationships_count,
         questions_count=questions_count,
         active_document=active_doc,
     )

@@ -37,7 +37,6 @@ def _document_response(record):
         "pages": record["page_count"],
         "chunks": record["chunk_count"],
         "traceability_count": record["traceability_count"],
-        "relationship_count": record.get("relationship_count", 0),
         "upload_timestamp": record.get("upload_timestamp"),
     }
 
@@ -98,7 +97,6 @@ def upload_document(
         **result,
         "project_id": project_id,
         "traceability_count": result["traceability_records"],
-        "relationship_count": result["relationship_records"],
         "upload_timestamp": result["version_info"].get("upload_timestamp"),
     }
 

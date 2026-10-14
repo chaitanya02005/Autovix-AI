@@ -37,12 +37,6 @@ def query_project(
         raise
 
     context = build_context(results)
-    relationships = results.get("relationships", [])
-    if relationships:
-        context += "\n\nARCHITECTURE RELATIONSHIPS:\n" + "\n".join(
-            f"{item['source']} {item['relationship']} {item['target']} (Page {item['page']})"
-            for item in relationships
-        )
 
     if not results["documents"][0]:
         answer = FALLBACK_ANSWER
