@@ -143,7 +143,7 @@ export default function Dashboard() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-[#0f172a]">Dashboard</h1>
         <p className="text-sm text-slate-500 mt-1">
-          Overview of your AUTOSAR documents and architecture analysis
+          Overview of your architecture documents and analysis
         </p>
       </div>
 
@@ -274,7 +274,7 @@ export default function Dashboard() {
               </div>
               <div className="text-sm font-semibold text-slate-700">No active document</div>
               <div className="text-xs text-slate-400 mt-1">
-                Upload an AUTOSAR PDF to get started
+                Upload a PDF document to get started
               </div>
               <button
                 onClick={() => setSelectedTab('Documents')}

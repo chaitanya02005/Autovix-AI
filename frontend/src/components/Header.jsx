@@ -1,16 +1,12 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { Briefcase, FileCheck, ChevronDown, Check } from 'lucide-react';
+import { Briefcase, ChevronDown } from 'lucide-react';
 
 export default function Header() {
   const {
     projects,
     currentProjectId,
-    currentProject,
-    currentRole,
     switchProject,
-    documentReady,
-    documentInfo,
   } = useApp();
 
   return (
@@ -33,7 +29,7 @@ export default function Header() {
               >
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name}
+                    {p.name === 'AUTOSAR Demo' ? 'Main Workspace' : p.name}
                   </option>
                 ))}
               </select>
@@ -41,26 +37,6 @@ export default function Header() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Active Document Status Badge */}
-      <div className="flex items-center gap-3">
-        {documentReady && documentInfo ? (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/60 text-emerald-800 text-xs font-medium shadow-sm">
-            <FileCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span className="font-semibold truncate max-w-[220px]">
-              {documentInfo.filename}
-            </span>
-            <span className="text-[10px] bg-emerald-200/60 px-1.5 py-0.5 rounded text-emerald-900 font-bold">
-              v{documentInfo.version || 1}
-            </span>
-          </div>
-        ) : (
-          <div className="text-xs text-slate-400 font-medium flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-slate-300"></span>
-            No active document
-          </div>
-        )}
       </div>
     </header>
   );

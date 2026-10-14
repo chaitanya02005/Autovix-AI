@@ -32,7 +32,7 @@ export default function Sidebar() {
         </div>
         <div className="flex flex-col justify-center leading-tight">
           <span className="text-[15px] font-bold text-[#f8fafc] tracking-tight">Autovix</span>
-          <span className="text-[11px] text-[#94a3b8] font-normal">AUTOSAR Intelligence</span>
+          <span className="text-[11px] text-[#94a3b8] font-normal">Document Intelligence</span>
         </div>
       </div>
 
@@ -67,7 +67,7 @@ export default function Sidebar() {
         <div className="flex items-center gap-2.5 text-[#94a3b8]">
           <Briefcase className="w-3.5 h-3.5 text-blue-400 shrink-0" />
           <span className="truncate font-medium text-slate-300">
-            {currentProject ? currentProject.name : 'Workspace'}
+            {currentProject ? (currentProject.name === 'AUTOSAR Demo' ? 'Main Workspace' : currentProject.name) : 'Workspace'}
           </span>
         </div>
       </div>

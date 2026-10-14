@@ -148,10 +148,10 @@ export default function Settings() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-base font-bold text-[#0f172a] truncate">
-                    {currentProject?.name || 'Default Workspace'}
+                    {currentProject?.name === 'AUTOSAR Demo' ? 'Main Workspace' : (currentProject?.name || 'Main Workspace')}
                   </div>
                   <div className="text-xs text-slate-500 mt-0.5">
-                    AUTOSAR Workspace
+                    Active Workspace
                   </div>
                 </div>
                 <span className="bg-slate-100 text-slate-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">
@@ -175,7 +175,7 @@ export default function Settings() {
               >
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name}
+                    {p.name === 'AUTOSAR Demo' ? 'Main Workspace' : p.name}
                   </option>
                 ))}
               </select>
@@ -190,7 +190,7 @@ export default function Settings() {
                   Create New Workspace
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  Create a separate workspace for another AUTOSAR project.
+                  Create a separate workspace for another project.
                 </p>
               </div>
 

@@ -67,7 +67,7 @@ def get_session():
     conn.close()
 
     if not user_row:
-        res = bootstrap_admin("admin", "admin123456789", "AUTOSAR Demo")
+        res = bootstrap_admin("admin", "admin123456789", "Main Workspace")
         admin_user_id = res["user_id"]
     else:
         admin_user_id = user_row[0]

@@ -173,7 +173,7 @@ def _insert_user(connection, username, password, role):
     return cursor.lastrowid
 
 
-def bootstrap_admin(username, password, project_name="AUTOSAR Demo"):
+def bootstrap_admin(username, password, project_name="Main Workspace"):
     init_db()
     with _connect() as connection:
         if connection.execute("SELECT 1 FROM users LIMIT 1").fetchone():

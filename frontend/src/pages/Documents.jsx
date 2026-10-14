@@ -198,7 +198,7 @@ export default function Documents() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-[#0f172a]">Documents</h1>
         <p className="text-sm text-slate-500 mt-1">
-          Upload, process and manage your AUTOSAR architecture documents
+          Upload, process and manage your architecture documents
         </p>
       </div>
 
@@ -218,7 +218,7 @@ export default function Documents() {
               >
                 <UploadCloud className="w-10 h-10 text-slate-700 mb-2" />
                 <span className="text-sm font-semibold text-[#0f172a]">
-                  Upload AUTOSAR PDF Document
+                  Upload PDF Document
                 </span>
                 <span className="text-xs text-slate-400 mt-1">
                   Drag and drop your PDF file here, or click to browse
@@ -263,7 +263,7 @@ export default function Documents() {
                   {uploading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Processing AUTOSAR document…</span>
+                      <span>Processing document…</span>
                     </>
                   ) : (
                     <>
@@ -549,7 +549,7 @@ export default function Documents() {
             <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
             <div className="text-sm font-semibold text-slate-700">No documents yet</div>
             <div className="text-xs text-slate-400 mt-1">
-              Upload an AUTOSAR PDF above to get started with your analysis.
+              Upload a PDF document above to get started with your analysis.
             </div>
           </div>
         )}

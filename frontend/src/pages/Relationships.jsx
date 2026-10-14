@@ -124,7 +124,7 @@ export default function Relationships() {
           <Share2 className="w-10 h-10 text-slate-300 mx-auto mb-3" />
           <div className="text-sm font-semibold text-slate-700">No document loaded</div>
           <div className="text-xs text-slate-400 mt-1">
-            Upload an AUTOSAR document in the Documents tab first.
+            Upload a document in the Documents tab first.
           </div>
           <button
             onClick={() => setSelectedTab('Documents')}

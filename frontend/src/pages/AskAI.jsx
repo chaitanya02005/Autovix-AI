@@ -79,7 +79,7 @@ export default function AskAI() {
           <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
           <div className="text-sm font-semibold text-slate-700">No active document</div>
           <div className="text-xs text-slate-400 mt-1">
-            Upload an AUTOSAR specification in the Documents tab first to start asking questions.
+            Upload a document in the Documents tab first to start asking questions.
           </div>
           <button
             onClick={() => setSelectedTab('Documents')}
