@@ -15,7 +15,7 @@ from database.access_control import (
     list_project_documents,
     require_project_access,
 )
-from frontend.relationship_graph import build_relationship_graph
+from backend.relationship_graph import build_relationship_graph
 from rag.rag_pipeline import load_relationships
 
 

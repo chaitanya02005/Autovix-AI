@@ -5,6 +5,4 @@ pymupdf
 pdfplumber
 pytesseract
 sentence-transformers
-streamlit
-streamlit-option-menu
 uvicorn
