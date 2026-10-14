@@ -90,6 +90,15 @@ def query_project(
     document_id = metadatas[0].get("document_id") if metadatas else None
     if primary_source and document_id:
         primary_source["document_id"] = document_id
+
+    context_chunks = [
+        {"document": doc, "metadata": meta}
+        for doc, meta in zip(
+            results["documents"][0],
+            results["metadatas"][0],
+        )
+    ]
+
     log_event(
         "DOCUMENT_QUERY",
         question=request.question,
@@ -108,4 +117,5 @@ def query_project(
         primary_source=primary_source,
         project_id=project["id"],
         document_id=document_id,
+        context=context_chunks,
     )

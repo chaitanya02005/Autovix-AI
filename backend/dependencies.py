@@ -13,14 +13,14 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from database.access_control import AuthorizationError, require_login, require_project_access
 
 
-TOKEN_TTL_SECONDS = 3600
+TOKEN_TTL_SECONDS = 86400  # 24 hours for development
 _TOKEN_SECRET = os.environ.get("AUTOVIX_API_SECRET")
 if _TOKEN_SECRET:
     if len(_TOKEN_SECRET.encode("utf-8")) < 32:
         raise RuntimeError("AUTOVIX_API_SECRET must be at least 32 bytes.")
     _TOKEN_SECRET = _TOKEN_SECRET.encode("utf-8")
 else:
-    _TOKEN_SECRET = secrets.token_bytes(32)
+    _TOKEN_SECRET = b"autovix-secret-key-32-bytes-minimum-development!"
 
 _bearer = HTTPBearer(auto_error=False)
 

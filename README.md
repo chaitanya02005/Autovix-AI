@@ -12,9 +12,9 @@ Autovix is an intelligent, multi-tenant workspace designed for analyzing and man
 
 ### Architecture Diagram
 ```text
-┌──────────┐       ┌───────────┐       ┌───────────┐
-│   User   │──────▶│ Streamlit │──────▶│  FastAPI  │
-└──────────┘       └───────────┘       └───────────┘
+┌──────────┐       ┌─────────────────┐       ┌───────────┐
+│   User   │──────▶│ React (Vite UI) │──────▶│  FastAPI  │
+└──────────┘       └─────────────────┘       └───────────┘
                                              │
                        ┌─────────────────────┴─────────────────────┐
                        ▼ (Upload)                                  ▼ (Query)
@@ -71,9 +71,8 @@ Autovix is an intelligent, multi-tenant workspace designed for analyzing and man
 1. Start the server and application:
    ```bash
    ./run.sh
-   # Or run directly: streamlit run frontend/app.py
    ```
-2. Visit `http://localhost:8501` in your browser.
+2. Visit `http://localhost:5173` in your browser.
 3. **Upload:** Go to the "Documents" tab and upload an AUTOSAR PDF.
 4. **Chat:** Go to "Ask AI" to ask questions about your architecture.
 5. **Explore:** View the interactive relationship graph or compare different document versions.

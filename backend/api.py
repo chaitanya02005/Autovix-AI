@@ -2,6 +2,7 @@ import logging
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.routes import (
@@ -25,6 +26,14 @@ app = FastAPI(
     title="Autovix API",
     description="Project-scoped architecture document processing and analysis services.",
     version="1.0.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -70,17 +79,25 @@ async def unexpected_error_handler(_request: Request, exception: Exception):
 
 
 @app.get("/health", tags=["health"], summary="Check API health")
+@app.get("/api/health", tags=["health"], summary="Check API health")
 def health():
     return {"status": "ok", "service": "Autovix"}
 
 
-app.include_router(auth.router)
-app.include_router(projects.router)
-app.include_router(documents.router)
-app.include_router(query.router)
-app.include_router(traceability.router)
-app.include_router(relationships.router)
-app.include_router(comparison.router)
-app.include_router(review.router)
-app.include_router(audit.router)
-app.include_router(exports.router)
+# Include routes at root
+_routers = [
+    auth.router,
+    projects.router,
+    documents.router,
+    query.router,
+    traceability.router,
+    relationships.router,
+    comparison.router,
+    review.router,
+    audit.router,
+    exports.router,
+]
+
+for r in _routers:
+    app.include_router(r)
+    app.include_router(r, prefix="/api")

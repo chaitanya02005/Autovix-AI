@@ -12,6 +12,7 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: Literal["bearer"] = "bearer"
     expires_in: int
+    user: "UserResponse | None" = None
 
 
 class UserResponse(BaseModel):
@@ -54,6 +55,7 @@ class QueryResponse(BaseModel):
     primary_source: dict[str, Any] | None
     project_id: int
     document_id: str | None
+    context: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class GraphNode(BaseModel):
@@ -96,5 +98,26 @@ class CompareResponse(BaseModel):
     added: list[dict[str, Any]]
     removed: list[dict[str, Any]]
     unchanged: list[dict[str, Any]]
+
+
+class AuditLogRequest(BaseModel):
+    event_type: str = Field(min_length=1, max_length=64)
+    question: str | None = None
+    document_name: str | None = None
+    document_id: str | None = None
+    status: str = "success"
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class DocumentDetailResponse(DocumentResponse):
+    extracted_pages: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class ProjectStatsResponse(BaseModel):
+    documents_count: int
+    entities_count: int
+    relationships_count: int
+    questions_count: int
+    active_document: dict[str, Any] | None = None
 
 

@@ -44,3 +44,41 @@ def issue_token(request: TokenRequest):
 @router.get("/me", response_model=UserResponse, summary="Return the authenticated user")
 def get_me(current_user: dict = Depends(get_current_user)):
     return current_user
+
+
+@router.get(
+    "/session",
+    response_model=TokenResponse,
+    summary="Get active session or bootstrap default local admin",
+)
+def get_session():
+    import sqlite3
+    from database.access_control import (
+        DATABASE_PATH,
+        bootstrap_admin,
+        init_db,
+        require_login,
+    )
+
+    init_db()
+    DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(DATABASE_PATH))
+    user_row = conn.execute("SELECT id FROM users ORDER BY id ASC LIMIT 1").fetchone()
+    conn.close()
+
+    if not user_row:
+        res = bootstrap_admin("admin", "admin123456789", "AUTOSAR Demo")
+        admin_user_id = res["user_id"]
+    else:
+        admin_user_id = user_row[0]
+
+    current_user = require_login(admin_user_id)
+    return TokenResponse(
+        access_token=create_access_token(current_user["id"]),
+        expires_in=TOKEN_TTL_SECONDS,
+        user=UserResponse(
+            id=current_user["id"],
+            username=current_user["username"],
+            role=current_user["role"],
+        ),
+    )
