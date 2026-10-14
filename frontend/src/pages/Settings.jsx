@@ -8,12 +8,10 @@ import {
   Server,
   Cpu,
   Bot,
-  ShieldCheck,
   CheckCircle2,
   XCircle,
   ShieldAlert,
-  Clock,
-  Layers
+  Clock
 } from 'lucide-react';
 
 export default function Settings() {
@@ -22,7 +20,6 @@ export default function Settings() {
     projects,
     currentProjectId,
     currentProject,
-    currentRole,
     switchProject,
     refreshProjects,
     addToast,

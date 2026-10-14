@@ -3,14 +3,12 @@ import { useApp } from '../context/AppContext';
 import { api } from '../api';
 import {
   FileText,
-  MessageSquare,
   ShieldCheck,
   ShieldAlert,
   ChevronDown,
   ChevronRight,
   ArrowRight,
-  Sparkles,
-  Layers
+  Sparkles
 } from 'lucide-react';
 
 export default function AskAI() {

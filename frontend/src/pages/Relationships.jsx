@@ -7,8 +7,6 @@ import {
   ArrowLeftRight,
   Search,
   Filter,
-  FileText,
-  Layers,
   ArrowRight
 } from 'lucide-react';
 
@@ -16,7 +14,6 @@ export default function Relationships() {
   const {
     currentProjectId,
     documentReady,
-    documentInfo,
     setSelectedTab,
     addToast,
   } = useApp();

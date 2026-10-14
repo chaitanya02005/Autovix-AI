@@ -1,7 +1,6 @@
 from rag_pipeline import retrieve_context
 from groq_client import generate_answer
 from citation import format_sources
-from database.access_control import prompt_for_user_project
 
 
 def build_context(results):

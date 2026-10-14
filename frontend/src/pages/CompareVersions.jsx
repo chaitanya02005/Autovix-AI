@@ -8,7 +8,6 @@ import {
   PlusCircle,
   MinusCircle,
   Download,
-  ShieldAlert,
   CheckCircle2,
   X
 } from 'lucide-react';
@@ -16,7 +15,6 @@ import {
 export default function CompareVersions() {
   const {
     currentProjectId,
-    currentRole,
     comparisonResult,
     setComparisonResult,
     addToast,

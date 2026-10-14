@@ -16,8 +16,7 @@ import {
   Search,
   FolderPlus,
   Trash2,
-  Clock,
-  Layers
+  Clock
 } from 'lucide-react';
 
 function timeAgo(ts) {

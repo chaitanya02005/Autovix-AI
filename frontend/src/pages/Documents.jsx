@@ -8,10 +8,7 @@ import {
   Eye,
   Download,
   Trash2,
-  CheckCircle2,
   AlertTriangle,
-  ChevronDown,
-  ChevronRight,
   X,
   FileCheck,
   Check

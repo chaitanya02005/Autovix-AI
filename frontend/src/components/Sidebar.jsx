@@ -7,12 +7,11 @@ import {
   Share2,
   ArrowLeftRight,
   Settings,
-  Shield,
   Briefcase
 } from 'lucide-react';
 
 export default function Sidebar() {
-  const { selectedTab, setSelectedTab, currentProject, currentRole, user } = useApp();
+  const { selectedTab, setSelectedTab, currentProject } = useApp();
 
   const navItems = [
     { id: 'Dashboard', label: 'Dashboard', icon: Home },

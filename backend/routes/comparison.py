@@ -54,7 +54,6 @@ async def compare_uploaded_files(
     require_project_roles(project, "admin", "architect")
     import os
     import tempfile
-    from analysis.document_comparison import compare_entities
     from extraction.traceability import extract_traceable_entities
     from ingestion.pdf_parser import extract_text_from_pdf
 
