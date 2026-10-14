@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://autovix.example.com/sitemap.xml

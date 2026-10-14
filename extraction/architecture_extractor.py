@@ -30,6 +30,11 @@ def extract_architecture_entities(text):
         "ports": [],
         "services": [],
         "architecture_views": [],
+        "architecture_concepts": [],
+        "data_elements": [],
+        "data_types": [],
+        "operations": [],
+        "events": [],
     }
 
     # ---------------------------------------------------------
@@ -51,6 +56,14 @@ def extract_architecture_entities(text):
         )
 
         entities["architecture_views"].extend(matches)
+
+    concept_patterns = [
+        r"\bfunctional flows?\b",
+        r"\barchitecture dependencies\b",
+        r"\barchitecture behavior\b",
+    ]
+    for pattern in concept_patterns:
+        entities["architecture_concepts"].extend(re.findall(pattern, text, flags=re.IGNORECASE))
 
     # ---------------------------------------------------------
     # Services
@@ -93,19 +106,20 @@ def extract_architecture_entities(text):
     # ---------------------------------------------------------
 
     port_patterns = [
-    r"\bPPort\b",
-    r"\bRPort\b",
-    r"\bDelegatedPort\b",
-    r"\bParameterPort\b",
-    r"\bPPortPrototype\b",
-    r"\bRPortPrototype\b",
-    r"\bAbstractProvidedPortPrototype\b",
-    r"\bAbstractRequiredPortPrototype\b",
-    r"\bModePortAnnotation\b",
-    r"\bNvDataPortAnnotation\b",
-    r"\bTriggerPortAnnotation\b",
-    r"\bPPorts\b",
-]
+        r"\bPPort\b",
+        r"\bRPort\b",
+        r"\bDelegatedPort\b",
+        r"\bParameterPort\b",
+        r"\bPPortPrototype\b",
+        r"\bRPortPrototype\b",
+        r"\bAbstractProvidedPortPrototype\b",
+        r"\bAbstractRequiredPortPrototype\b",
+        r"\bModePortAnnotation\b",
+        r"\bNvDataPortAnnotation\b",
+        r"\bTriggerPortAnnotation\b",
+        r"\bPPorts\b",
+        r"\bRPorts\b",
+    ]
 
     for pattern in port_patterns:
         matches = re.findall(
@@ -122,6 +136,7 @@ def extract_architecture_entities(text):
     component_patterns = [
         r"\b[A-Z][A-Za-z0-9_-]*Component\b",
         r"\b[A-Z][A-Za-z0-9_-]*Manager\b",
+        r"\b[A-Z][A-Za-z0-9_-]*(?:AdaptiveApplication|Application)\b",
     ]
 
     for pattern in component_patterns:
@@ -131,6 +146,18 @@ def extract_architecture_entities(text):
         )
 
         entities["components"].extend(matches)
+
+    # These suffix-based recognizers require an explicit AUTOSAR-style
+    # identifier in the source. They intentionally do not infer relationships.
+    named_patterns = {
+        "services": r"\b[A-Z][A-Za-z0-9_-]*(?:ServiceInstance|ServiceReference|ServiceRef|Service)\b",
+        "data_elements": r"\b[A-Z][A-Za-z0-9_-]*(?:DataElement|Signal)\b",
+        "data_types": r"\b[A-Z][A-Za-z0-9_-]*DataType\b",
+        "operations": r"\b[A-Z][A-Za-z0-9_-]*Operation\b",
+        "events": r"\b[A-Z][A-Za-z0-9_-]*Event\b",
+    }
+    for category, pattern in named_patterns.items():
+        entities[category].extend(re.findall(pattern, text))
 
     # ---------------------------------------------------------
     # Remove duplicates

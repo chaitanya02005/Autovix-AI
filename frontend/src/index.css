@@ -3,9 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --primary: #111111;
-  --primary-dark: #000000;
-  --primary-light: #F4F4F4;
+  --primary: #0f172a;
+  --primary-hover: #1e293b;
   --sidebar-bg: #0b1120;
   --bg: #F8FAFC;
   --surface: #FFFFFF;
@@ -15,19 +14,21 @@
   --muted-light: #94a3b8;
   --border: #e2e8f0;
   --border-strong: #cbd5e1;
-  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
   --radius-lg: 12px;
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: var(--ink);
   background-color: var(--bg);
   margin: 0;
   padding: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Custom scrollbar */
+/* Custom subtle scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -43,18 +44,30 @@ body {
   background: #94a3b8;
 }
 
-/* Smooth animations */
+/* Subtle fade in transition */
 .fade-in {
-  animation: fadeIn 0.2s ease-in-out;
+  animation: fadeIn 0.15s ease-out;
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(2px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

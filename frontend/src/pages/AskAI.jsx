@@ -8,7 +8,8 @@ import {
   ChevronDown,
   ChevronRight,
   ArrowRight,
-  Sparkles
+  Search,
+  Bot,
 } from 'lucide-react';
 
 export default function AskAI() {
@@ -27,10 +28,10 @@ export default function AskAI() {
   const [showPassages, setShowPassages] = useState(false);
 
   const suggestedQuestions = [
-    'What are the main views of the Adaptive Platform?',
-    'How are the components connected?',
-    'What interfaces are described in this document?',
-    'What dependencies are mentioned?',
+    'What are the main software components defined in this architecture?',
+    'What communication interfaces and ports are specified?',
+    'How are service instances configured between client and server?',
+    'What safety requirements and dependencies are described?',
   ];
 
   const handleQuery = async (queryText) => {
@@ -66,22 +67,22 @@ export default function AskAI() {
   if (!documentReady) {
     return (
       <div className="space-y-6 fade-in">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#0f172a]">Ask AI</h1>
+        <div className="pb-2 border-b border-slate-200">
+          <h1 className="text-2xl font-bold tracking-tight text-[#0f172a]">Ask AI Document Assistant</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Query your document using natural language to find architectural answers.
+            Query your AUTOSAR specification using natural language to retrieve grounded architectural answers.
           </p>
         </div>
 
-        <div className="bg-white border border-[#e2e8f0] rounded-xl p-12 text-center shadow-sm">
+        <div className="bg-white border border-[#e2e8f0] rounded-xl p-12 text-center shadow-xs">
           <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <div className="text-sm font-semibold text-slate-700">No active document</div>
+          <div className="text-sm font-semibold text-slate-700">No active specification document</div>
           <div className="text-xs text-slate-400 mt-1">
-            Upload a document in the Documents tab first to start asking questions.
+            Upload an AUTOSAR PDF document in the Documents tab first to enable grounded RAG answering.
           </div>
           <button
             onClick={() => setSelectedTab('Documents')}
-            className="mt-4 px-4 py-2 bg-[#1e293b] text-white text-xs font-semibold rounded-lg hover:bg-slate-900 transition-colors inline-flex items-center gap-2"
+            className="mt-4 px-4 py-2 bg-[#0f172a] text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-colors inline-flex items-center gap-2 shadow-xs"
           >
             <span>Go to Documents</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -94,38 +95,41 @@ export default function AskAI() {
   const confidenceLevel =
     lastAnswer?.retrieval_confidence?.level ||
     (lastAnswer?.retrieval_confidence?.score > 0.7 ? 'High' : 'Medium') ||
-    'Unknown';
+    'High';
   const isGrounded = lastAnswer?.grounding?.supported ?? true;
 
   return (
     <div className="space-y-6 fade-in">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-[#0f172a]">Ask AI</h1>
+      <div className="pb-2 border-b border-slate-200">
+        <h1 className="text-2xl font-bold tracking-tight text-[#0f172a]">Ask AI Assistant</h1>
         <p className="text-sm text-slate-500 mt-1">
-          Query your document using natural language to find architectural answers.
+          Query your AUTOSAR specification with strictly grounded answers retrieved from vector passages and source tables.
         </p>
       </div>
 
       {/* Active Document Indicator Banner */}
       <div>
-        <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-          Active Document
+        <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+          Active Knowledge Source
         </div>
-        <div className="bg-white border border-[#e2e8f0] rounded-xl p-4 flex items-center gap-3.5 shadow-sm">
+        <div className="bg-white border border-[#e2e8f0] rounded-xl p-4 flex items-center gap-3.5 shadow-xs">
           <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
             <FileText className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold text-[#0f172a] truncate">
+            <div className="text-xs sm:text-sm font-bold text-[#0f172a] truncate">
               {documentInfo?.filename || 'Document'}
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
               <span>v{documentInfo?.version || 1}</span>
-              <span className="text-slate-300">•</span>
+              <span className="text-slate-300">|</span>
               <span>{documentInfo?.pages || 0} pages</span>
-              <span className="text-slate-300">•</span>
-              <span className="text-slate-800 font-semibold">Ready</span>
+              <span className="text-slate-300">|</span>
+              <span className="text-emerald-700 font-semibold inline-flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                Grounded Vector Index Active
+              </span>
             </div>
           </div>
         </div>
@@ -139,37 +143,37 @@ export default function AskAI() {
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             disabled={asking}
-            placeholder="Ask about components, interfaces, signals, dependencies..."
-            className="w-full h-12 pl-4 pr-24 text-sm bg-white border border-[#e2e8f0] rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-300 transition-shadow disabled:bg-slate-50"
+            placeholder="Ask about components, interfaces, ports, service instances, or signals..."
+            className="w-full h-12 pl-4 pr-28 text-xs sm:text-sm bg-white border border-[#e2e8f0] rounded-xl shadow-xs focus:outline-none focus:ring-1 focus:ring-slate-400 transition-shadow disabled:bg-slate-50"
           />
           <button
             type="submit"
             disabled={asking || !question.trim()}
-            className="absolute right-1.5 top-1.5 bottom-1.5 px-4 bg-[#1e293b] hover:bg-slate-900 disabled:bg-slate-300 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"
+            className="absolute right-1.5 top-1.5 bottom-1.5 px-4 bg-[#0f172a] hover:bg-slate-800 disabled:bg-slate-300 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs"
           >
             {asking ? (
               <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
             ) : (
-              <Sparkles className="w-3.5 h-3.5" />
+              <Search className="w-3.5 h-3.5" />
             )}
-            <span>Ask AI</span>
+            <span>Query</span>
           </button>
         </div>
       </form>
 
       {/* Suggested Questions */}
       <div className="space-y-2 pt-1">
-        <div className="text-xs font-semibold text-slate-500">Suggested questions</div>
+        <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Suggested architectural queries</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {suggestedQuestions.map((sug, idx) => (
             <button
               key={idx}
               disabled={asking}
               onClick={() => handleQuery(sug)}
-              className="text-left text-xs font-medium text-slate-700 bg-white border border-[#e2e8f0] hover:border-slate-300 hover:bg-slate-50/80 p-3 rounded-xl transition-all shadow-xs flex items-center justify-between group"
+              className="text-left text-xs font-medium text-slate-700 bg-white border border-[#e2e8f0] hover:border-slate-300 hover:bg-slate-50 p-3 rounded-lg transition-colors shadow-2xs flex items-center justify-between group"
             >
               <span className="truncate pr-2">{sug}</span>
-              <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 transition-colors shrink-0" />
+              <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-700 transition-colors shrink-0" />
             </button>
           ))}
         </div>
@@ -177,11 +181,11 @@ export default function AskAI() {
 
       {/* Loading state indicator */}
       {asking && (
-        <div className="bg-white border border-[#e2e8f0] rounded-xl p-8 text-center shadow-sm space-y-3 fade-in">
-          <div className="w-8 h-8 border-3 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <div className="text-sm font-semibold text-slate-700">Analyzing document…</div>
-          <div className="text-xs text-slate-400">
-            Searching architecture entities, matching vector contexts, and validating grounding.
+        <div className="bg-white border border-[#e2e8f0] rounded-xl p-8 text-center shadow-xs space-y-3 fade-in">
+          <div className="w-8 h-8 border-2 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <div className="text-sm font-semibold text-slate-800">Retrieving vector contexts and formulating answer...</div>
+          <div className="text-xs text-slate-500">
+            Matching semantic embeddings in ChromaDB, retrieving source paragraphs, and validating grounding.
           </div>
         </div>
       )}
@@ -189,22 +193,20 @@ export default function AskAI() {
       {/* AI Answer Card */}
       {lastAnswer && !asking && (
         <div className="pt-4 space-y-4 fade-in">
-          <div className="h-px bg-slate-200"></div>
-
-          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-            AI Answer
+          <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            Grounded Answer
           </div>
 
           {/* Badges: Confidence & Groundedness */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="bg-slate-100 text-slate-800 text-xs font-semibold px-3 py-1 rounded-full">
-              Confidence: {confidenceLevel}
+            <span className="bg-slate-100 border border-slate-200 text-slate-800 text-xs font-semibold px-2.5 py-1 rounded-md">
+              Retrieval Confidence: {confidenceLevel}
             </span>
             <span
-              className={`text-xs font-semibold px-3 py-1 rounded-full inline-flex items-center gap-1.5 ${
+              className={`text-xs font-semibold px-2.5 py-1 rounded-md inline-flex items-center gap-1.5 ${
                 isGrounded
-                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/50'
-                  : 'bg-amber-50 text-amber-800 border border-amber-200/50'
+                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                  : 'bg-amber-50 text-amber-800 border border-amber-200'
               }`}
             >
               {isGrounded ? (
@@ -212,29 +214,34 @@ export default function AskAI() {
               ) : (
                 <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
               )}
-              <span>{isGrounded ? 'Grounded' : 'Partially grounded'}</span>
+              <span>{isGrounded ? 'Grounded in Source Document' : 'Partially Grounded'}</span>
             </span>
           </div>
 
+          {/* Question asked recap */}
+          <div className="text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200 p-3 rounded-lg">
+            Query: "{lastAnswer.question}"
+          </div>
+
           {/* Answer Text */}
-          <div className="bg-white border border-[#e2e8f0] border-l-4 border-l-[#111111] rounded-xl p-6 shadow-sm text-sm text-[#0f172a] leading-relaxed whitespace-pre-wrap">
+          <div className="bg-white border border-[#e2e8f0] border-l-4 border-l-[#0f172a] rounded-xl p-6 shadow-xs text-xs sm:text-sm text-[#0f172a] leading-relaxed whitespace-pre-wrap">
             {lastAnswer.answer}
           </div>
 
           {/* Sources Chips */}
           {lastAnswer.sources && lastAnswer.sources.length > 0 && (
             <div className="space-y-2">
-              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                Sources
+              <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                Source Page Citations
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {lastAnswer.sources.map((s, idx) => (
                   <div
                     key={idx}
-                    className="bg-[#F6F6F6] border border-[#E8E8E8] px-3 py-1.5 rounded-md text-xs font-medium text-slate-600 flex items-center gap-1.5 shadow-xs"
+                    className="bg-slate-50 border border-slate-200 px-3 py-1 rounded-md text-xs font-medium text-slate-700 flex items-center gap-1.5 shadow-2xs"
                   >
-                    <FileText className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Page {s.page || '?'}</span>
+                    <FileText className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Page {s.page || 'N/A'}</span>
                   </div>
                 ))}
               </div>
@@ -243,12 +250,12 @@ export default function AskAI() {
 
           {/* Detailed Context Passages Accordion */}
           {lastAnswer.context && lastAnswer.context.length > 0 && (
-            <div className="bg-white border border-[#e2e8f0] rounded-xl overflow-hidden shadow-sm">
+            <div className="bg-white border border-[#e2e8f0] rounded-xl overflow-hidden shadow-xs">
               <button
                 onClick={() => setShowPassages(!showPassages)}
                 className="w-full px-5 py-3.5 flex items-center justify-between text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
               >
-                <span>Show detailed context passages ({lastAnswer.context.length})</span>
+                <span>Inspect Retrieved Context Passages ({lastAnswer.context.length})</span>
                 {showPassages ? (
                   <ChevronDown className="w-4 h-4 text-slate-400" />
                 ) : (
@@ -259,18 +266,18 @@ export default function AskAI() {
               {showPassages && (
                 <div className="p-5 border-t border-slate-100 bg-slate-50/50 space-y-3">
                   {lastAnswer.context.map((chunk, idx) => {
-                    const pageNum = chunk.metadata?.page_number || '?';
+                    const pageNum = chunk.metadata?.page_number || 'N/A';
                     const docText = chunk.document || '';
                     return (
                       <div
                         key={idx}
-                        className="bg-white border border-slate-200 rounded-lg p-3 text-xs space-y-1 shadow-xs"
+                        className="bg-white border border-slate-200 rounded-lg p-3 text-xs space-y-1 shadow-2xs"
                       >
                         <div className="font-bold text-slate-800">
-                          Source {idx + 1} — Page {pageNum}
+                          Source {idx + 1} : Page {pageNum}
                         </div>
                         <div className="font-mono text-[11px] text-slate-600 whitespace-pre-wrap leading-relaxed">
-                          {docText.length > 600 ? `${docText.substring(0, 600)}…` : docText}
+                          {docText.length > 600 ? `${docText.substring(0, 600)}...` : docText}
                         </div>
                       </div>
                     );

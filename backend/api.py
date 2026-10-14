@@ -10,6 +10,7 @@ from backend.routes import (
     auth,
     comparison,
     documents,
+    entities,
     exports,
     projects,
     query,
@@ -62,8 +63,17 @@ async def authorization_error_handler(_request: Request, exception: Authorizatio
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_error_handler(_request: Request, _exception: RequestValidationError):
-    return _error(400, "invalid_request", "Request data did not match the expected schema.")
+async def validation_error_handler(_request: Request, exception: RequestValidationError):
+    # Report only field locations and validator codes. Never echo submitted values,
+    # since validation errors can originate from credentials or document metadata.
+    fields = []
+    for error in exception.errors():
+        location = ".".join(str(part) for part in error.get("loc", ()) if part != "body") or "request"
+        validator = str(error.get("type", "invalid"))
+        fields.append(f"{location} ({validator})")
+    message = "Request validation failed" + (f" for {', '.join(fields)}." if fields else ".")
+    logger.info("Request validation rejected %s %s: %s", _request.method, _request.url.path, message)
+    return _error(400, "invalid_request", message)
 
 
 @app.exception_handler(ValueError)
@@ -88,6 +98,7 @@ _routers = [
     auth.router,
     projects.router,
     documents.router,
+    entities.router,
     query.router,
     traceability.router,
     comparison.router,
@@ -98,4 +109,4 @@ _routers = [
 
 for r in _routers:
     app.include_router(r)
-    app.include_router(r, prefix="/api")
+    app.include_router(r, prefix="/api")

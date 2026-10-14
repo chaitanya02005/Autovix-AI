@@ -6,6 +6,7 @@ Autovix is an intelligent, multi-tenant workspace designed for analyzing and man
 **Key Features:**
 - **Intelligent Parsing:** Reads text, tables, and scanned architecture diagrams using OCR.
 - **Automated Extraction:** Extracts Components, PPorts, RPorts, and Service Instances.
+- **Architecture Entity Recognition:** Select a project document version, recognize explicitly named components, ports, interfaces, services, data elements and types, operations, and events, then inspect page-level source evidence or export JSON/CSV.
 - **Traceable AI Chat:** Natural language questions are strictly grounded in your documents.
 - **Version Comparison:** Compare document versions to see added, removed, or modified components.
 
@@ -75,6 +76,9 @@ Autovix is an intelligent, multi-tenant workspace designed for analyzing and man
 3. **Upload:** Go to the "Documents" tab and upload an AUTOSAR PDF.
 4. **Chat:** Go to "Ask AI" to ask questions about your architecture.
 5. **Compare:** Compare different document versions to track evolution.
+6. **Recognize entities:** Open **Architecture Entity Recognition**, select an uploaded document version, and run recognition. Results are built from stored PDF/OCR page text and extracted table chunks. Cache entries are scoped to the project, document ID, version, source content, and recognition schema. Use **Rebuild results** to explicitly rerun recognition from the stored source. Selecting an entity shows its source page excerpts; filters support name, type, and page.
+
+Recognition is deterministic and evidence-backed. It scans stored page text directly (rather than relying on the separate traceability index), and uses stored table text when available. It does not use an external AI provider and does not interpret architecture diagram objects. The supported names are terminology explicitly matched in extracted source text; the current application has no interactive Architecture Explorer screen or relationship extraction source module. Relationship records are shown only when present in a document's existing `relationships.json` artifact. Entity review is presented as pending; approval/correction actions are not yet implemented for entities. Pages with no extracted text are reported as warnings; OCR depends on Tesseract being installed and configured.
 
 ## Contributing
 We welcome contributions! To contribute:

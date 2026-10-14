@@ -16,7 +16,7 @@ echo "=========================================================="
 
 # Start FastAPI backend on port 8000
 echo "Starting FastAPI backend on http://127.0.0.1:8000..."
-uvicorn backend.api:app --host 127.0.0.1 --port 8000 &
+uvicorn backend.api:app --host 127.0.0.1 --port 8000 --reload &
 BACKEND_PID=$!
 
 # Trap Ctrl+C (SIGINT) and exit signals to kill backend on exit

@@ -159,6 +159,30 @@ export const api = {
     return request(`/projects/${projectId}/traceability${query ? `?${query}` : ''}`);
   },
 
+  async getDocumentEntities(projectId, documentId, params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return request(`/projects/${projectId}/documents/${documentId}/entities${query ? `?${query}` : ''}`);
+  },
+
+  async recognizeDocumentEntities(projectId, documentId, version, { force = false } = {}) {
+    const query = new URLSearchParams();
+    if (version !== undefined && version !== null && String(version).trim() !== '') {
+      query.set('version', String(version));
+    }
+    if (force === true || force === 'true') query.set('force', 'true');
+    const queryString = query.toString();
+    const suffix = queryString ? `?${queryString}` : '';
+    return request(`/projects/${projectId}/documents/${documentId}/entities/recognize${suffix}`, { method: 'POST' });
+  },
+
+  async getDocumentEntity(projectId, documentId, entityId) {
+    return request(`/projects/${projectId}/documents/${documentId}/entities/${entityId}`);
+  },
+
+  async exportDocumentEntities(projectId, documentId, format = 'csv') {
+    return request(`/projects/${projectId}/documents/${documentId}/entities/export/${format}`);
+  },
+
   // Comparison
   async compareDocuments(projectId, baselineDocumentId, currentDocumentId) {
     return request(`/projects/${projectId}/compare`, {

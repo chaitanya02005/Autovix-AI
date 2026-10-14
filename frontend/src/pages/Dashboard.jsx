@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { api } from '../api';
 import {
   FileText,
-  Box,
+  Network,
   MessageSquare,
   ArrowRight,
   RefreshCw,
@@ -15,7 +15,8 @@ import {
   Search,
   FolderPlus,
   Trash2,
-  Clock
+  Clock,
+  ExternalLink,
 } from 'lucide-react';
 
 function timeAgo(ts) {
@@ -72,23 +73,23 @@ export default function Dashboard() {
   const getEventIcon = (type) => {
     switch (type) {
       case 'DOCUMENT_PROCESSED':
-        return { icon: FileCheck, color: 'text-emerald-600 bg-emerald-50' };
+        return { icon: FileCheck, color: 'text-emerald-700 bg-emerald-50' };
       case 'DOCUMENT_UPLOADED':
-        return { icon: UploadCloud, color: 'text-blue-600 bg-blue-50' };
+        return { icon: UploadCloud, color: 'text-blue-700 bg-blue-50' };
       case 'QUESTION_ASKED':
-        return { icon: MessageSquare, color: 'text-amber-600 bg-amber-50' };
+        return { icon: MessageSquare, color: 'text-amber-700 bg-amber-50' };
       case 'COMPARISON_RUN':
-        return { icon: ArrowLeftRight, color: 'text-purple-600 bg-purple-50' };
+        return { icon: ArrowLeftRight, color: 'text-slate-700 bg-slate-100' };
       case 'LOGIN':
-        return { icon: User, color: 'text-indigo-600 bg-indigo-50' };
+        return { icon: User, color: 'text-slate-700 bg-slate-100' };
       case 'LOGOUT':
         return { icon: LogOut, color: 'text-slate-600 bg-slate-50' };
       case 'SEARCH':
-        return { icon: Search, color: 'text-cyan-600 bg-cyan-50' };
+        return { icon: Search, color: 'text-slate-700 bg-slate-100' };
       case 'PROJECT_CREATED':
-        return { icon: FolderPlus, color: 'text-emerald-600 bg-emerald-50' };
+        return { icon: FolderPlus, color: 'text-emerald-700 bg-emerald-50' };
       case 'DOCUMENT_DELETED':
-        return { icon: Trash2, color: 'text-rose-600 bg-rose-50' };
+        return { icon: Trash2, color: 'text-rose-700 bg-rose-50' };
       default:
         return { icon: Clock, color: 'text-slate-600 bg-slate-50' };
     }
@@ -106,7 +107,7 @@ export default function Dashboard() {
     } else if (['DOCUMENT_PROCESSED', 'DOCUMENT_UPLOADED', 'DOCUMENT_DELETED'].includes(evt)) {
       const docName = log.document_name || 'Unknown Document';
       const version = log.details?.version || '1';
-      title = `${docName} [${version}]`;
+      title = `${docName} [v${version}]`;
       if (evt === 'DOCUMENT_PROCESSED') subtitle = 'Document processed successfully';
       else if (evt === 'DOCUMENT_UPLOADED') subtitle = 'Document uploaded';
       else subtitle = 'Document deleted';
@@ -138,68 +139,78 @@ export default function Dashboard() {
   return (
     <div className="space-y-8 fade-in">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-[#0f172a]">Dashboard</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Overview of your architecture documents and analysis
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-[#0f172a]">Workspace Dashboard</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Real-time status of your AUTOSAR specifications, architecture entities, and grounded RAG models.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 rounded-lg transition-colors shadow-xs"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${logsLoading ? 'animate-spin' : ''}`} />
+            <span>Refresh Overview</span>
+          </button>
+        </div>
       </div>
 
       {/* 3-column Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {/* Documents */}
-        <div className="bg-white border border-[#e2e8f0] rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white border border-[#e2e8f0] rounded-xl p-5 shadow-xs hover:border-slate-300 transition-colors">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
               <FileText className="w-6 h-6" />
             </div>
             <div>
               <div className="text-2xl font-bold text-[#0f172a]">
                 {stats.documents_count || 0}
               </div>
-              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
-                Documents
+              <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
+                Processed Documents
               </div>
               <div className="text-xs text-slate-500 mt-0.5">
-                {stats.documents_count || 0} processed
+                Active in workspace catalog
               </div>
             </div>
           </div>
         </div>
 
         {/* Entities */}
-        <div className="bg-white border border-[#e2e8f0] rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white border border-[#e2e8f0] rounded-xl p-5 shadow-xs hover:border-slate-300 transition-colors">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-              <Box className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-lg bg-slate-100 text-slate-800 flex items-center justify-center shrink-0">
+              <Network className="w-6 h-6" />
             </div>
             <div>
               <div className="text-2xl font-bold text-[#0f172a]">
                 {(stats.entities_count || 0).toLocaleString()}
               </div>
-              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
-                Entities
+              <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
+                Architecture Entities
               </div>
-              <div className="text-xs text-slate-500 mt-0.5">From active document</div>
+              <div className="text-xs text-slate-500 mt-0.5">Components, ports, interfaces</div>
             </div>
           </div>
         </div>
 
-
         {/* Questions */}
-        <div className="bg-white border border-[#e2e8f0] rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow border-amber-200/50">
+        <div className="bg-white border border-[#e2e8f0] rounded-xl p-5 shadow-xs hover:border-slate-300 transition-colors">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
               <MessageSquare className="w-6 h-6" />
             </div>
             <div>
               <div className="text-2xl font-bold text-[#0f172a]">
                 {stats.questions_count || 0}
               </div>
-              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
-                Questions
+              <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">
+                Questions Answered
               </div>
-              <div className="text-xs text-slate-500 mt-0.5">This session</div>
+              <div className="text-xs text-slate-500 mt-0.5">Grounded RAG session queries</div>
             </div>
           </div>
         </div>
@@ -209,57 +220,69 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Current Document (7 cols) */}
         <div className="lg:col-span-7 space-y-3">
-          <h2 className="text-base font-semibold text-[#0f172a]">Current Document</h2>
+          <h2 className="text-sm font-bold text-[#0f172a] uppercase tracking-wider text-slate-500">
+            Active Document
+          </h2>
 
           {documentReady && documentInfo ? (
-            <div className="bg-white border border-[#e2e8f0] rounded-xl p-6 shadow-sm space-y-6">
-              <div className="flex items-start gap-5">
-                <div className="w-16 h-20 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 shrink-0 shadow-inner">
-                  <FileText className="w-9 h-9" />
+            <div className="bg-white border border-[#e2e8f0] rounded-xl p-6 shadow-xs space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-16 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shrink-0">
+                  <FileText className="w-8 h-8" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <span className="text-lg font-bold text-[#0f172a] truncate max-w-[340px]">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <span className="text-base sm:text-lg font-bold text-[#0f172a] truncate max-w-sm" title={documentInfo.filename}>
                       {documentInfo.filename || 'Unknown Document'}
                     </span>
-                    <span className="bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-md text-xs font-bold">
+                    <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-xs font-bold border border-slate-200">
                       v{documentInfo.version || 1}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-xs text-slate-500 font-medium">Status:</span>
-                    <span className="bg-emerald-100 text-emerald-800 px-3 py-0.5 rounded-full text-xs font-semibold">
-                      Processed
+                    <span className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-800 px-2.5 py-0.5 rounded text-xs font-semibold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                      Processed & Indexed
                     </span>
                   </div>
                   <div className="text-xs text-slate-500 mt-2 font-medium">
-                    Pages: <strong className="text-slate-800">{documentInfo.pages || 0}</strong>
-                    <span className="mx-2 text-slate-300">•</span>
-                    Chunks: <strong className="text-slate-800">{documentInfo.chunks || 0}</strong>
+                    Total Pages: <strong className="text-slate-800">{documentInfo.pages || 0}</strong>
+                    <span className="mx-2 text-slate-300">|</span>
+                    Text Chunks: <strong className="text-slate-800">{documentInfo.chunks || 0}</strong>
                   </div>
                 </div>
               </div>
 
-              <button
-                onClick={() => setSelectedTab('Documents')}
-                className="w-full h-11 bg-[#1e293b] hover:bg-slate-900 text-white font-semibold rounded-lg text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
-              >
-                <span>View Document Details</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => setSelectedTab('Documents')}
+                  className="flex-1 h-10 bg-[#0f172a] hover:bg-slate-800 text-white font-semibold rounded-lg text-xs transition-colors flex items-center justify-center gap-2 shadow-xs"
+                >
+                  <span>Manage in Documents</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setSelectedTab('Architecture Entity Recognition')}
+                  className="flex-1 h-10 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-semibold rounded-lg text-xs transition-colors flex items-center justify-center gap-2 shadow-xs"
+                >
+                  <span>Inspect Architecture Entities</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="bg-white border border-[#e2e8f0] rounded-xl p-10 text-center shadow-sm">
-              <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center mb-3">
+            <div className="bg-white border border-[#e2e8f0] rounded-xl p-10 text-center shadow-xs">
+              <div className="w-12 h-12 rounded-lg bg-slate-100 text-slate-400 mx-auto flex items-center justify-center mb-3">
                 <FileText className="w-6 h-6" />
               </div>
               <div className="text-sm font-semibold text-slate-700">No active document</div>
               <div className="text-xs text-slate-400 mt-1">
-                Upload a PDF document to get started
+                Upload an AUTOSAR PDF specification to begin architecture extraction.
               </div>
               <button
                 onClick={() => setSelectedTab('Documents')}
-                className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#1e293b] text-white text-xs font-semibold rounded-lg hover:bg-slate-900 transition-colors"
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#0f172a] text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-colors shadow-xs"
               >
                 Go to Documents
               </button>
@@ -270,26 +293,19 @@ export default function Dashboard() {
         {/* Recent Activity (5 cols) */}
         <div className="lg:col-span-5 space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-[#0f172a]">Recent Activity</h2>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleRefresh}
-                title="Refresh activity logs"
-                className="p-1.5 rounded-lg border border-[#e2e8f0] text-slate-600 hover:bg-slate-50 transition-colors"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${logsLoading ? 'animate-spin' : ''}`} />
-              </button>
-              <button
-                onClick={() => setSelectedTab('Settings')}
-                title="View all audit logs"
-                className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-2.5 py-1 rounded-lg border border-[#e2e8f0] hover:bg-slate-50 transition-colors"
-              >
-                All Logs
-              </button>
-            </div>
+            <h2 className="text-sm font-bold text-[#0f172a] uppercase tracking-wider text-slate-500">
+              Recent Workspace Activity
+            </h2>
+            <button
+              onClick={() => setSelectedTab('Settings')}
+              title="View all audit logs"
+              className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-2.5 py-1 rounded-lg border border-[#e2e8f0] hover:bg-slate-50 transition-colors"
+            >
+              All Logs
+            </button>
           </div>
 
-          <div className="bg-white border border-[#e2e8f0] rounded-xl p-5 shadow-sm space-y-4">
+          <div className="bg-white border border-[#e2e8f0] rounded-xl p-5 shadow-xs space-y-3.5">
             {logs.length > 0 ? (
               logs.slice(0, 6).map((log, idx) => {
                 const { title, subtitle } = formatLogItem(log);
@@ -302,9 +318,9 @@ export default function Dashboard() {
                   >
                     <div className="flex items-start gap-3 min-w-0">
                       <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${color}`}
+                        className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${color}`}
                       >
-                        <EventIcon className="w-4 h-4" />
+                        <EventIcon className="w-3.5 h-3.5" />
                       </div>
                       <div className="min-w-0">
                         <div className="text-xs font-semibold text-[#0f172a] truncate leading-tight">
@@ -323,7 +339,7 @@ export default function Dashboard() {
               })
             ) : (
               <div className="text-center py-8 text-xs text-slate-400">
-                No recent activity.
+                No recent activity recorded.
               </div>
             )}
           </div>
