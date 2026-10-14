@@ -448,7 +448,39 @@ def create_document_record(
         row = connection.execute(
             "SELECT * FROM documents WHERE id = ?", (cursor.lastrowid,)
         ).fetchone()
-    return dict(row)
+    return _normalize_document_record(row)
+
+
+def _normalize_document_record(record):
+    if not record:
+        return record
+    doc = dict(record)
+    artifact_dir = doc.get("artifact_dir")
+    if artifact_dir:
+        p = Path(artifact_dir)
+        if not p.exists():
+            candidate = (
+                PROJECT_ROOT
+                / "data"
+                / "processed"
+                / "projects"
+                / str(doc.get("project_id"))
+                / str(doc.get("document_id"))
+            )
+            if candidate.exists():
+                doc["artifact_dir"] = str(candidate)
+    elif doc.get("project_id") and doc.get("document_id"):
+        candidate = (
+            PROJECT_ROOT
+            / "data"
+            / "processed"
+            / "projects"
+            / str(doc.get("project_id"))
+            / str(doc.get("document_id"))
+        )
+        if candidate.exists():
+            doc["artifact_dir"] = str(candidate)
+    return doc
 
 
 def list_project_documents(user_id, project_id):
@@ -458,7 +490,7 @@ def list_project_documents(user_id, project_id):
             "SELECT * FROM documents WHERE project_id = ? ORDER BY id DESC",
             (project["id"],),
         ).fetchall()
-    return [dict(row) for row in rows]
+    return [_normalize_document_record(row) for row in rows]
 
 
 def get_project_document(user_id, project_id, document_id):
@@ -470,7 +502,7 @@ def get_project_document(user_id, project_id, document_id):
         ).fetchone()
     if row is None:
         raise AuthorizationError("Document access denied.")
-    return dict(row)
+    return _normalize_document_record(row)
 
 
 def delete_document(user_id, project_id, document_id):

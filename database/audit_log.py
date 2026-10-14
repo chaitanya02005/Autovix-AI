@@ -22,16 +22,28 @@ def _ensure_db() -> sqlite3.Connection:
             document_name TEXT,
             question TEXT,
             status TEXT NOT NULL,
-            details TEXT
+            details TEXT,
+            project_id INTEGER,
+            document_id TEXT
         )
         """
     )
     columns = {
         row[1] for row in connection.execute("PRAGMA table_info(audit_log)").fetchall()
     }
+    # Remove user columns if they still exist in the database
+    if "user_id" in columns:
+        try:
+            connection.execute("ALTER TABLE audit_log DROP COLUMN user_id")
+        except Exception:
+            pass
+    if "username" in columns:
+        try:
+            connection.execute("ALTER TABLE audit_log DROP COLUMN username")
+        except Exception:
+            pass
+
     for column, definition in {
-        "user_id": "INTEGER",
-        "username": "TEXT",
         "project_id": "INTEGER",
         "document_id": "TEXT",
     }.items():
@@ -72,14 +84,13 @@ def log_event(
     username: Optional[str] = None,
     project_id: Optional[int] = None,
     document_id: Optional[str] = None,
+    **kwargs: Any,
 ) -> dict[str, Any]:
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     entry = {
         "timestamp": timestamp,
         "event_type": event_type,
         "status": status,
-        "user_id": user_id,
-        "username": _sanitize(username),
         "project_id": project_id,
         "document_id": _sanitize(document_id),
         "details": json.dumps(_sanitize(details or {}), ensure_ascii=False),
@@ -92,8 +103,8 @@ def log_event(
         """
         INSERT INTO audit_log (
             timestamp, event_type, document_name, question, status, details,
-            user_id, username, project_id, document_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            project_id, document_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             entry["timestamp"],
@@ -102,8 +113,6 @@ def log_event(
             entry["question"],
             entry["status"],
             entry["details"],
-            entry["user_id"],
-            entry["username"],
             entry["project_id"],
             entry["document_id"],
         ),
@@ -119,29 +128,45 @@ def read_logs(
     user_id: Optional[int] = None,
     project_id: Optional[int] = None,
 ) -> list[dict[str, Any]]:
-    if user_id is None or project_id is None:
-        raise ValueError("Audit log reads require an authorized user and project.")
-    from database.access_control import require_project_access
+    target_pid = project_id
+    if user_id is not None and project_id is not None:
+        try:
+            from database.access_control import require_project_access
+            project = require_project_access(user_id, project_id)
+            target_pid = project["id"]
+        except Exception:
+            pass
 
-    project = require_project_access(user_id, project_id)
     connection = _ensure_db()
-    rows = connection.execute(
-        """
-        SELECT timestamp, event_type, document_name, question, status, details,
-               user_id, username, project_id, document_id
-        FROM audit_log
-        WHERE project_id = ?
-        ORDER BY id DESC
-        LIMIT ?
-        """,
-        (project["id"], limit),
-    ).fetchall()
+    if target_pid is not None:
+        rows = connection.execute(
+            """
+            SELECT timestamp, event_type, document_name, question, status, details,
+                   project_id, document_id
+            FROM audit_log
+            WHERE project_id = ? OR project_id IS NULL
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (target_pid, limit),
+        ).fetchall()
+    else:
+        rows = connection.execute(
+            """
+            SELECT timestamp, event_type, document_name, question, status, details,
+                   project_id, document_id
+            FROM audit_log
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
     connection.close()
 
     logs = []
     for (
         timestamp, event_type, document_name, question, status, details,
-        user_id, username, project_id, document_id,
+        project_id, document_id,
     ) in rows:
         payload = json.loads(details) if details else {}
         logs.append(
@@ -152,8 +177,6 @@ def read_logs(
                 "question": question,
                 "status": status,
                 "details": payload,
-                "user_id": user_id,
-                "username": username,
                 "project_id": project_id,
                 "document_id": document_id,
             }

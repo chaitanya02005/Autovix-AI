@@ -28,13 +28,11 @@ from rag.grounding_guard import check_grounding
 from database.audit_log import log_event, read_logs
 from database.access_control import (
     AuthorizationError,
-    authenticate_user,
     can_compare,
     can_upload,
     create_project,
     delete_document,
     get_project_document,
-    list_users,
     list_project_documents,
     list_user_projects,
     require_login,
@@ -566,57 +564,30 @@ for key, default in {
     if key not in st.session_state:
         st.session_state[key] = default
 
-if st.session_state.current_user_id is not None:
-    try:
-        st.session_state.current_user = require_login(st.session_state.current_user_id)
-    except AuthorizationError:
-        for key in (
-            "current_user", "current_user_id", "current_project_id",
-            "current_project_name", "current_role", "document_info",
-            "document_ready", "last_answer", "comparison_result",
-        ):
-            st.session_state[key] = None if key != "document_ready" else False
+# --- Ensure DB and workspace are initialized without login barrier ---
+from database.access_control import bootstrap_admin, init_db, DATABASE_PATH, require_login
+init_db()
 
-# --- Auto-bootstrap admin on first run ---
-if st.session_state.current_user_id is None:
-    from database.access_control import bootstrap_admin, init_db, DATABASE_PATH
+import sqlite3 as _sqlite3
+DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
+_conn = _sqlite3.connect(str(DATABASE_PATH))
+_user_row = _conn.execute("SELECT id FROM users ORDER BY id ASC LIMIT 1").fetchone()
+_conn.close()
 
-    init_db()
+if not _user_row:
+    res = bootstrap_admin("admin", "admin123456789", "AUTOSAR Demo")
+    admin_user_id = res["user_id"]
+else:
+    admin_user_id = _user_row[0]
 
-    # Check if any user already exists
-    import sqlite3 as _sqlite3
-    DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    _conn = _sqlite3.connect(str(DATABASE_PATH))
-    _row = _conn.execute("SELECT id FROM users LIMIT 1").fetchone()
-    _conn.close()
+current_user = require_login(admin_user_id)
+st.session_state.current_user_id = admin_user_id
+st.session_state.current_user = current_user
 
-    if _row:
-        # Users exist — log in as the first admin
-        st.session_state.current_user_id = _row[0]
-    else:
-        # First run — bootstrap admin account
-        result = bootstrap_admin("admin", "admin123456789", "AUTOSAR Demo")
-        st.session_state.current_user_id = result["user_id"]
-
-    st.session_state.current_user = require_login(st.session_state.current_user_id)
-    projects = list_user_projects(st.session_state.current_user_id)
-    if projects:
-        st.session_state.current_project_id = projects[0]["id"]
-
-    st.rerun()
-
-
-current_user = st.session_state.current_user
 projects = list_user_projects(current_user["id"])
-
 if not projects:
-    st.warning("Your account is not a member of any project.")
-    if st.button("Log out", key="logout_no_projects"):
-        log_event("LOGOUT", user_id=current_user["id"], username=current_user["username"])
-        st.session_state.current_user = None
-        st.session_state.current_user_id = None
-        st.rerun()
-    st.stop()
+    new_proj = create_project(current_user["id"], "AUTOSAR Demo")
+    projects = [new_proj]
 
 project_ids = [project["id"] for project in projects]
 if st.session_state.current_project_id not in project_ids:
@@ -640,9 +611,12 @@ if project_documents:
         latest_document = get_project_document(
             current_user["id"], project["id"], latest_document["document_id"]
         )
-        artifact_dir = Path(latest_document["artifact_dir"])
-        with (artifact_dir / "chunks.json").open("r", encoding="utf-8") as file:
-            chunk_data = json.load(file)
+        artifact_dir = Path(latest_document["artifact_dir"]) if latest_document.get("artifact_dir") else None
+        chunks_file = (artifact_dir / "chunks.json") if artifact_dir else None
+        chunk_data = []
+        if chunks_file and chunks_file.exists():
+            with chunks_file.open("r", encoding="utf-8") as file:
+                chunk_data = json.load(file)
         st.session_state.document_info = {
             "filename": latest_document["filename"],
             "document_id": latest_document["document_id"],
@@ -653,13 +627,13 @@ if project_documents:
             "traceability_records": latest_document["traceability_count"],
             "relationship_records": 0,
             "collection_name": latest_document["collection_name"],
-            "artifact_dir": str(artifact_dir),
-            "traceability_path": str(artifact_dir / "traceability.json"),
-            "pages_path": str(artifact_dir / "pages.json"),
-            "relationship_path": str(artifact_dir / "relationships.json"),
+            "artifact_dir": str(artifact_dir) if artifact_dir else "",
+            "traceability_path": str(artifact_dir / "traceability.json") if artifact_dir else "",
+            "pages_path": str(artifact_dir / "pages.json") if artifact_dir else "",
+            "relationship_path": str(artifact_dir / "relationships.json") if artifact_dir else "",
             "chunk_data": chunk_data,
         }
-        if Path(st.session_state.document_info["relationship_path"]).exists():
+        if st.session_state.document_info["relationship_path"] and Path(st.session_state.document_info["relationship_path"]).exists():
             with open(st.session_state.document_info["relationship_path"], "r", encoding="utf-8") as file:
                 st.session_state.document_info["relationship_records"] = len(json.load(file))
         st.session_state.document_ready = True
@@ -855,12 +829,18 @@ if selected_tab == 'Dashboard':
             ''', unsafe_allow_html=True)
 
     with dash_col2:
-        st.markdown('''
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-            <div class="sec-title" style="margin:0; font-size:16px;">Recent Activity</div>
-            <span style="font-size:14px; color:#3b82f6; font-weight:600; cursor:pointer;">View All</span>
-        </div>
-        ''', unsafe_allow_html=True)
+        _top_c1, _top_c2 = st.columns([1.5, 1])
+        with _top_c1:
+            st.markdown('<div class="sec-title" style="margin:0; font-size:16px;">Recent Activity</div>', unsafe_allow_html=True)
+        with _top_c2:
+            _rc1, _rc2 = st.columns(2)
+            with _rc1:
+                if st.button("↻", key="dash_refresh_btn", help="Refresh activity logs"):
+                    st.rerun()
+            with _rc2:
+                if st.button("All Logs", key="dash_view_all_btn", help="View all audit logs in Settings"):
+                    st.session_state.selected_tab = "Settings"
+                    st.rerun()
 
         def time_ago(ts):
             import datetime
@@ -882,6 +862,9 @@ if selected_tab == 'Dashboard':
             "COMPARISON_RUN":     "bi-arrow-left-right",
             "LOGIN":              "bi-person-circle",
             "LOGOUT":             "bi-box-arrow-right",
+            "SEARCH":             "bi-search",
+            "PROJECT_CREATED":    "bi-folder-plus",
+            "DOCUMENT_DELETED":   "bi-trash-fill",
         }
 
         activity_html = '<div class="card" style="padding:24px; display:flex; flex-direction:column; gap:20px;">'
@@ -908,11 +891,19 @@ if selected_tab == 'Dashboard':
                     title = "Comparison completed"
                     subtitle = "Documents compared"
                 elif evt == "LOGIN":
-                    title = "Login"
-                    subtitle = "User logged in"
+                    title = "System Session"
+                    subtitle = "Session active"
                 elif evt == "LOGOUT":
-                    title = "Logout"
-                    subtitle = "User logged out"
+                    title = "System Session"
+                    subtitle = "Session closed"
+                elif evt == "SEARCH":
+                    target = log.get("details", {}).get("target", "documents")
+                    q = log.get("question") or log.get("details", {}).get("query", "query")
+                    title = f'Search: "{q[:30]}..."' if len(q) > 30 else f'Search: "{q}"'
+                    subtitle = f"Filtered {target}"
+                elif evt == "PROJECT_CREATED":
+                    title = "New Workspace"
+                    subtitle = "Workspace created"
                 else:
                     title = evt.replace("_", " ").title()
                     subtitle = "System event"
@@ -1052,7 +1043,19 @@ elif selected_tab == 'Documents':
     st.markdown('<div class="sec-title">Uploaded Documents</div>', unsafe_allow_html=True)
 
     # Search bar
-    _search = st.text_input("Search documents", placeholder="Search by filename…", label_visibility="collapsed")
+    _search = st.text_input("Search documents", placeholder="Search by filename…", key="doc_search_query", label_visibility="collapsed")
+    if _search and _search.strip():
+        if _search.strip() != st.session_state.get("last_logged_doc_search"):
+            st.session_state.last_logged_doc_search = _search.strip()
+            log_event(
+                "SEARCH",
+                question=_search.strip(),
+                status="success",
+                user_id=current_user["id"],
+                username=current_user["username"],
+                project_id=project["id"],
+                details={"target": "documents", "query": _search.strip()},
+            )
 
     if _project_docs:
         # Deduplicate — keep latest version per filename
@@ -1296,30 +1299,37 @@ elif selected_tab == 'Ask AI':
         </div>
         ''', unsafe_allow_html=True)
 
-        question = st.text_input(
-            "Ask AI",
-            placeholder="Ask about components, interfaces, signals, dependencies...",
-            key="project_question",
-            label_visibility="collapsed"
-        )
-
-        ask_pressed = st.button("Ask AI", type="primary", use_container_width=True)
+        with st.form("ask_ai_form", border=False):
+            question = st.text_input(
+                "Ask AI",
+                placeholder="Ask about components, interfaces, signals, dependencies...",
+                key="project_question_input",
+                label_visibility="collapsed"
+            )
+            ask_pressed = st.form_submit_button("Ask AI", type="primary", use_container_width=True)
 
         st.markdown('<div style="height:4px;"></div>', unsafe_allow_html=True)
         st.markdown('<div class="sec-title" style="margin-top:20px; margin-bottom:12px;">Suggested questions</div>', unsafe_allow_html=True)
         _sug1, _sug2 = st.columns(2, gap="medium")
+        clicked_sug = None
         with _sug1:
-            st.button("What are the main views of the Adaptive Platform?", use_container_width=True)
-            st.button("How are the components connected?", use_container_width=True)
+            if st.button("What are the main views of the Adaptive Platform?", key="sug_1", use_container_width=True):
+                clicked_sug = "What are the main views of the Adaptive Platform?"
+            if st.button("How are the components connected?", key="sug_2", use_container_width=True):
+                clicked_sug = "How are the components connected?"
         with _sug2:
-            st.button("What interfaces are described in this document?", use_container_width=True)
-            st.button("What dependencies are mentioned?", use_container_width=True)
+            if st.button("What interfaces are described in this document?", key="sug_3", use_container_width=True):
+                clicked_sug = "What interfaces are described in this document?"
+            if st.button("What dependencies are mentioned?", key="sug_4", use_container_width=True):
+                clicked_sug = "What dependencies are mentioned?"
 
-        if ask_pressed and question:
+        active_query = clicked_sug or (question.strip() if (ask_pressed and question and question.strip()) else None)
+
+        if active_query:
             with st.spinner("Analyzing document..."):
                 try:
                     results = retrieve_context(
-                        question,
+                        active_query,
                         top_k=5,
                         user_id=current_user["id"],
                         project_id=project["id"],
@@ -1333,29 +1343,47 @@ elif selected_tab == 'Ask AI':
                         )
                     ]
                     from rag.rag_pipeline import build_prompt
-                    prompt = build_prompt(question, context_chunks)
+                    prompt = build_prompt(active_query, context_chunks)
                     answer = generate_answer(prompt)
-                    if answer:
-                        grounding = check_grounding(answer, " ".join(c["document"] for c in context_chunks))
-                        st.session_state.last_answer = {
-                            "question": question,
-                            "answer": answer,
-                            "context": context_chunks,
-                            "results": results,
-                            "is_grounded": grounding.get("supported", False),
-                            "grounding_score": grounding.get("score", 0.0),
-                            "confidence": results.get("confidence", {}),
-                        }
-                        log_event(
-                            "QUESTION_ASKED",
-                            question=question,
-                            status="success",
-                            details={"confidence": results.get("confidence", {}).get("level", "Unknown")},
-                            user_id=current_user["id"],
-                            username=current_user["username"],
-                            project_id=project["id"],
-                        )
+                    if not answer:
+                        answer = "Context was retrieved from the document, but no response was generated by the LLM. Please check your GROQ_API_KEY."
+
+                    grounding = check_grounding(answer, " ".join(c["document"] for c in context_chunks)) if answer else {}
+                    st.session_state.last_answer = {
+                        "question": active_query,
+                        "answer": answer,
+                        "context": context_chunks,
+                        "results": results,
+                        "is_grounded": grounding.get("supported", False),
+                        "grounding_score": grounding.get("score", 0.0),
+                        "confidence": results.get("confidence", {}),
+                    }
+                    log_event(
+                        "QUESTION_ASKED",
+                        question=active_query,
+                        document_name=_doc_info.get("filename"),
+                        document_id=_doc_info.get("document_id"),
+                        status="success",
+                        details={
+                            "confidence": results.get("confidence", {}).get("level", "Unknown"),
+                            "chunks_retrieved": len(context_chunks),
+                        },
+                        user_id=current_user["id"],
+                        username=current_user["username"],
+                        project_id=project["id"],
+                    )
                 except Exception as e:
+                    log_event(
+                        "QUESTION_ASKED",
+                        question=active_query,
+                        document_name=_doc_info.get("filename"),
+                        document_id=_doc_info.get("document_id"),
+                        status="error",
+                        details={"error": str(e)},
+                        user_id=current_user["id"],
+                        username=current_user["username"],
+                        project_id=project["id"],
+                    )
                     st.error(f"Error generating answer: {e}")
                     import traceback; traceback.print_exc()
 
@@ -1509,7 +1537,21 @@ elif selected_tab == 'Relationships':
                 with open(_trace_path, "r", encoding="utf-8") as _f:
                     _trace = json.load(_f)
                 if _trace:
-                    _trace_search = st.text_input("Search entities", placeholder="Filter entities…", key="trace_search", label_visibility="collapsed")
+                    _trace_search = st.text_input("Search entities", placeholder="Filter entities…", key="trace_search_input", label_visibility="collapsed")
+                    if _trace_search and _trace_search.strip():
+                        if _trace_search.strip() != st.session_state.get("last_logged_trace_search"):
+                            st.session_state.last_logged_trace_search = _trace_search.strip()
+                            log_event(
+                                "SEARCH",
+                                question=_trace_search.strip(),
+                                document_name=st.session_state.document_info.get("filename"),
+                                document_id=st.session_state.document_info.get("document_id"),
+                                status="success",
+                                user_id=current_user["id"],
+                                username=current_user["username"],
+                                project_id=project["id"],
+                                details={"target": "entities", "query": _trace_search.strip()},
+                            )
                     _disp_trace = [t for t in _trace if not _trace_search or _trace_search.lower() in str(t.get("entity","")).lower() or _trace_search.lower() in str(t.get("type","")).lower()]
                     _type_colors = {
                         "components": "#333333", "interfaces": "#555555",
@@ -1676,11 +1718,11 @@ elif selected_tab == 'Settings':
     st.markdown('''
     <div class="page-header">
         <h1>Settings</h1>
-        <p>Manage your workspace, access controls, audit history, and system configuration.</p>
+        <p>Manage your workspace, audit history, and system configuration.</p>
     </div>
     ''', unsafe_allow_html=True)
 
-    t_ws, t_team, t_audit, t_sys = st.tabs(["Workspace", "Team & Access", "Audit Logs", "System Info"])
+    t_ws, t_audit, t_sys = st.tabs(["Workspace", "Audit Logs", "System Info"])
 
     # ── Workspace ──────────────────────────────────────────────────────────────
     with t_ws:
@@ -1756,89 +1798,70 @@ elif selected_tab == 'Settings':
                 </div>
                 ''', unsafe_allow_html=True)
 
-    # ── Team & Access ──────────────────────────────────────────────────────────
-    with t_team:
-        st.markdown('<div style="height:2px;"></div>', unsafe_allow_html=True)
-        if current_user["role"] == "admin":
-            managed_users = list_users(current_user["id"])
-            if managed_users:
-                # Build the COMPLETE table HTML in one string, then render once
-                _team_html = (
-                    '<div style="background:#FFFFFF;border:1px solid #E8E8E8;border-radius:12px;overflow:hidden;">'
-                    '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
-                    '<thead><tr style="background:#F6F6F6;">'
-                    '<th style="padding:11px 20px;text-align:left;font-size:11px;font-weight:600;color:#777777;border-bottom:2px solid #E0E0E0;text-transform:uppercase;letter-spacing:0.5px;">Member</th>'
-                    '<th style="padding:11px 20px;text-align:left;font-size:11px;font-weight:600;color:#777777;border-bottom:2px solid #E0E0E0;text-transform:uppercase;letter-spacing:0.5px;">Role</th>'
-                    '<th style="padding:11px 20px;text-align:left;font-size:11px;font-weight:600;color:#777777;border-bottom:2px solid #E0E0E0;text-transform:uppercase;letter-spacing:0.5px;">Status</th>'
-                    '</tr></thead><tbody>'
-                )
-                for _u in managed_users:
-                    _ustatus = (
-                        '<span style="background:#F0F0F0;color:#333333;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600;">Active</span>'
-                        if _u['active'] else
-                        '<span style="background:#F5F5F5;color:#777777;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600;">Inactive</span>'
-                    )
-                    _team_html += (
-                        '<tr style="border-bottom:1px solid #EFEFEF;">'
-                        f'<td style="padding:14px 20px;font-weight:600;color:#111111;">'
-                        f'<div style="display:flex;align-items:center;gap:10px;">'
-                        f'<div style="width:30px;height:30px;border-radius:50%;background:#F2F2F2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
-                        f'<i class="bi bi-person-fill" style="color:#222222;font-size:14px;"></i></div>'
-                        f'{_u["username"]}</div></td>'
-                        f'<td style="padding:14px 20px;color:#777777;">{_u["role"].title()}</td>'
-                        f'<td style="padding:14px 20px;">{_ustatus}</td>'
-                        '</tr>'
-                    )
-                _team_html += '</tbody></table></div>'
-                st.markdown(_team_html, unsafe_allow_html=True)
-            else:
-                st.markdown('''
-                <div class="empty-state">
-                    <i class="bi bi-people empty-state-icon"></i>
-                    <div class="empty-state-title">No team members yet</div>
-                    <div class="empty-state-desc">Users added to this workspace will appear here.</div>
-                </div>
-                ''', unsafe_allow_html=True)
-        else:
-            st.markdown('''
-            <div class="empty-state">
-                <i class="bi bi-shield-lock empty-state-icon"></i>
-                <div class="empty-state-title">Administrator Access Required</div>
-                <div class="empty-state-desc">You need system administrator privileges to manage users and access control.</div>
-            </div>
-            ''', unsafe_allow_html=True)
-
     # ── Audit Logs ─────────────────────────────────────────────────────────────
     with t_audit:
         st.markdown('<div style="height:2px;"></div>', unsafe_allow_html=True)
+        _ac1, _ac2, _ac3 = st.columns([2, 1, 1])
+        with _ac1:
+            st.markdown('<div style="font-size:14px; font-weight:600; color:#111; margin-top:8px;">Workspace Audit History</div>', unsafe_allow_html=True)
+        with _ac2:
+            _filter_type = st.selectbox(
+                "Filter Event",
+                options=["All Events", "QUESTION_ASKED", "SEARCH", "DOCUMENT_UPLOADED", "DOCUMENT_DELETED", "COMPARISON_RUN", "PROJECT_CREATED"],
+                key="audit_event_filter",
+                label_visibility="collapsed"
+            )
+        with _ac3:
+            if st.button("↻ Refresh Logs", key="refresh_audit_logs_btn", use_container_width=True):
+                st.rerun()
+
         try:
-            logs = read_logs(user_id=current_user["id"], project_id=project["id"], limit=50)
+            logs = read_logs(user_id=current_user["id"], project_id=project["id"], limit=100)
+            if _filter_type != "All Events":
+                logs = [lg for lg in logs if lg.get("event_type") == _filter_type]
+
             if logs:
                 # Build the COMPLETE table HTML in one string, then render once
                 _audit_html = (
-                    '<div style="background:#FFFFFF;border:1px solid #E8E8E8;border-radius:12px;overflow:hidden;">'
+                    '<div style="background:#FFFFFF;border:1px solid #E8E8E8;border-radius:12px;overflow:hidden;margin-top:12px;">'
                     '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
                     '<thead><tr style="background:#F6F6F6;">'
                     '<th style="padding:11px 20px;text-align:left;font-size:11px;font-weight:600;color:#777777;border-bottom:2px solid #E0E0E0;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">Timestamp</th>'
-                    '<th style="padding:11px 20px;text-align:left;font-size:11px;font-weight:600;color:#777777;border-bottom:2px solid #E0E0E0;text-transform:uppercase;letter-spacing:0.5px;">User</th>'
                     '<th style="padding:11px 20px;text-align:left;font-size:11px;font-weight:600;color:#777777;border-bottom:2px solid #E0E0E0;text-transform:uppercase;letter-spacing:0.5px;">Action</th>'
-                    '<th style="padding:11px 20px;text-align:left;font-size:11px;font-weight:600;color:#777777;border-bottom:2px solid #E0E0E0;text-transform:uppercase;letter-spacing:0.5px;">Resource</th>'
+                    '<th style="padding:11px 20px;text-align:left;font-size:11px;font-weight:600;color:#777777;border-bottom:2px solid #E0E0E0;text-transform:uppercase;letter-spacing:0.5px;">Resource / Query</th>'
                     '<th style="padding:11px 20px;text-align:left;font-size:11px;font-weight:600;color:#777777;border-bottom:2px solid #E0E0E0;text-transform:uppercase;letter-spacing:0.5px;">Status</th>'
                     '</tr></thead><tbody>'
                 )
                 for _lg in logs:
-                    _evt_color = {"success": "#333333", "error": "#555555"}.get(_lg['status'], "#888888")
-                    _evt_icon  = {"success": "bi-check-circle", "error": "bi-x-circle"}.get(_lg['status'], "bi-dash-circle")
-                    _evt_label = _lg['status'].title()
+                    _status = _lg.get('status', 'success')
+                    _evt_color = {"success": "#059669", "error": "#dc2626", "denied": "#dc2626"}.get(_status, "#64748b")
+                    _evt_icon  = {"success": "bi-check-circle-fill", "error": "bi-x-circle-fill", "denied": "bi-shield-slash"}.get(_status, "bi-dash-circle")
+                    _evt_label = _status.title()
                     _st_cell = f'<span style="color:{_evt_color};font-weight:600;font-size:12px;display:inline-flex;align-items:center;gap:4px;"><i class="bi {_evt_icon}"></i>{_evt_label}</span>'
-                    _res = _lg.get("details", {}).get("document_id", "—") if isinstance(_lg.get("details"), dict) else "—"
-                    _ts  = _lg["timestamp"][:16].replace("T", " ")
+                    
+                    _res = "—"
+                    if _lg.get("question"):
+                        _q = _lg["question"]
+                        _res = f'"{_q[:35]}..."' if len(_q) > 35 else f'"{_q}"'
+                    elif _lg.get("document_name"):
+                        _res = _lg["document_name"]
+                    elif isinstance(_lg.get("details"), dict):
+                        _det = _lg["details"]
+                        if _det.get("query"):
+                            _res = f'Query: "{_det["query"]}"'
+                        elif _det.get("target"):
+                            _res = f'Target: {_det["target"]}'
+                        elif _det.get("document_id"):
+                            _res = str(_det["document_id"])
+                        elif _lg.get("event_type") in ("LOGIN", "LOGOUT"):
+                            _res = "System"
+                    
+                    _ts  = _lg["timestamp"][:19].replace("T", " ")
                     _audit_html += (
                         '<tr style="border-bottom:1px solid #EFEFEF;">'
                         f'<td style="padding:12px 20px;color:#777777;white-space:nowrap;font-size:12px;">{_ts}</td>'
-                        f'<td style="padding:12px 20px;color:#111111;font-weight:500;">{_lg.get("username","System")}</td>'
-                        f'<td style="padding:12px 20px;color:#111111;">{_lg["event_type"]}</td>'
-                        f'<td style="padding:12px 20px;color:#777777;font-size:12px;">{_res}</td>'
+                        f'<td style="padding:12px 20px;color:#111111;font-weight:600;">{_lg["event_type"]}</td>'
+                        f'<td style="padding:12px 20px;color:#475569;font-size:12px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{_res}</td>'
                         f'<td style="padding:12px 20px;">{_st_cell}</td>'
                         '</tr>'
                     )
@@ -1848,8 +1871,8 @@ elif selected_tab == 'Settings':
                 st.markdown('''
                 <div class="empty-state">
                     <i class="bi bi-journal-text empty-state-icon"></i>
-                    <div class="empty-state-title">No audit activity yet</div>
-                    <div class="empty-state-desc">Actions taken in this workspace will appear here.</div>
+                    <div class="empty-state-title">No audit activity found</div>
+                    <div class="empty-state-desc">Actions matching this filter will appear here.</div>
                 </div>
                 ''', unsafe_allow_html=True)
         except Exception as e:
