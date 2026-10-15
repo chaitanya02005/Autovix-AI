@@ -224,6 +224,14 @@ export default function AskAI() {
             Query: "{lastAnswer.question}"
           </div>
 
+          {lastAnswer.answer === 'I could not find enough information in the document.' && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+              {lastAnswer.context?.length
+                ? 'The retrieved passages did not contain enough evidence for this question. Try a specific component, interface, or section name; inspect the source passages below.'
+                : 'No document passages were retrieved. Check the selected project and make sure its document has finished processing.'}
+            </div>
+          )}
+
           {/* Answer Text */}
           <div className="bg-white border border-[#e2e8f0] border-l-4 border-l-[#0f172a] rounded-xl p-6 shadow-xs text-xs sm:text-sm text-[#0f172a] leading-relaxed whitespace-pre-wrap">
             {lastAnswer.answer}

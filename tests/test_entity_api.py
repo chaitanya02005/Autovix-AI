@@ -7,6 +7,8 @@ from backend.api import app
 from backend.dependencies import create_access_token, decode_access_token
 from database import access_control
 from backend.routes import entities as entity_routes
+from backend.routes import query as query_routes
+from rag.embeddings import EmbeddingModelUnavailableError
 
 
 @pytest.fixture
@@ -34,6 +36,24 @@ def test_entity_recognition_endpoint_requires_authentication(authorized_document
     with TestClient(app) as client:
         response = client.post(f"/api/projects/{project_id}/documents/doc-v1/entities/recognize")
     assert response.status_code == 401
+
+
+def test_query_fails_fast_with_clear_error_when_local_embeddings_are_missing(authorized_document, monkeypatch):
+    token, project_id = authorized_document
+
+    def missing_embeddings(*_args, **_kwargs):
+        raise EmbeddingModelUnavailableError("Local embedding model is not available.")
+
+    monkeypatch.setattr(query_routes, "retrieve_context", missing_embeddings)
+    with TestClient(app) as client:
+        response = client.post(
+            f"/api/projects/{project_id}/query",
+            json={"question": "What does this document describe?"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "local_embedding_model_unavailable"
+    assert "Local embedding model" in response.json()["error"]["message"]
 
 
 def test_entity_recognition_endpoint_returns_cached_scoped_entities(authorized_document):

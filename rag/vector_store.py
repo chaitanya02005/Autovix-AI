@@ -2,7 +2,7 @@ import json
 
 import chromadb
 
-from embeddings import EmbeddingModel
+from rag.embeddings import get_embedding_model
 
 
 CHUNKS_FILE = "data/processed/autosar_chunks.json"
@@ -27,7 +27,7 @@ def create_vector_database():
     print(f"Loaded {len(chunks)} AUTOSAR chunks.")
 
     # Load embedding model
-    embedding_model = EmbeddingModel()
+    embedding_model = get_embedding_model()
 
     # Persistent ChromaDB
     client = chromadb.PersistentClient(

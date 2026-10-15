@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from rag.retriever import search_document_metadata, search_documents
+from rag.retriever import expand_query, search_document_metadata, search_documents
 from rag.reranker import rerank_results
 from rag.confidence import calculate_confidence
 from database.access_control import list_project_documents, require_project_access
@@ -77,6 +77,7 @@ def retrieve_context(
             project_id=project_id,
         )
 
+    results["query"] = expand_query(query)
     ranked_results = rerank_results(results)
     confidence = calculate_confidence(ranked_results)
 

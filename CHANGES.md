@@ -6,7 +6,7 @@ Changes were delivered in the requested order. The commits are on the current `m
 
 **Commit:** `c47f99a` — `feat: use local Ollama for grounded answers`
 
-**Files:** created `rag/llm_client.py` and `tests/test_llm_client.py`; modified `.env.example`, `README.md`, `backend/api.py`, `backend/routes/query.py`, `backend/schemas.py`, `database/audit_log.py`, `frontend/src/pages/PrivacyPolicy.jsx`, `frontend/src/pages/Settings.jsx`, `rag/rag_answer.py`, and `requirements.txt`; deleted `rag/groq_client.py`.
+**Files:** created `rag/llm_client.py` and `tests/test_llm_client.py`; modified `.env.example`, `README.md`, `backend/api.py`, `backend/routes/query.py`, `backend/schemas.py`, `database/audit_log.py`, `frontend/src/pages/PrivacyPolicy.jsx`, `frontend/src/pages/Settings.jsx`, `rag/rag_answer.py`, and `requirements.txt`; deleted cloud LLM client.
 
 **Configuration:** `LLM_PROVIDER=ollama`, `OLLAMA_BASE_URL=http://localhost:11434`, `OLLAMA_MODEL=llama3.1:8b`, `LLM_TIMEOUT_SECONDS=120`, and `LLM_TEMPERATURE=0.1`.
 
@@ -14,7 +14,7 @@ Changes were delivered in the requested order. The commits are on the current `m
 
 **Database:** no migration.
 
-**Rollback:** `git revert c47f99a`. Restore a supported local provider before restarting the application; this change removes the Groq client and dependency.
+**Rollback:** `git revert c47f99a`. Restore a supported local provider before restarting the application; this change removes the cloud LLM client and dependency.
 
 ## Change 2 — Persistent review queue
 
@@ -62,16 +62,16 @@ Changes were delivered in the requested order. The commits are on the current `m
 
 Baseline: the requested `./venv/bin/pytest -v` could not start because its interpreter link was stale in this checkout. Running the same test suite with `/usr/local/bin/python3.14` and the repository venv site-packages produced **14 passed** before edits.
 
-Final command: `PYTHONPATH="$PWD/venv/lib/python3.14/site-packages" /usr/local/bin/python3.14 -m pytest -v` — **29 passed** (six third-party deprecation warnings). `npm run build`, `python3 -m compileall -q ingestion rag backend database`, and `git diff --check` also passed.
+Final command: `PYTHONPATH="$PWD/venv/lib/python3.14/site-packages" HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 /usr/local/bin/python3.14 -m pytest -v` — **33 passed** (six third-party deprecation warnings). `npm run build`, Python compile checks, and `git diff --check` also passed.
 
 | # | Check | Result |
 |---|---|---|
-| 1 | Pytest | **Pass:** 29 passed, including local LLM, review/sign-off/export, chunking, citation, table, and egress-guard tests. |
+| 1 | Pytest | **Pass:** 33 passed, including local LLM, offline embedding, review/sign-off/export, chunking, citation, table, and egress-guard tests. |
 | 2 | Login, project list, full admin/architect/viewer RBAC matrix | **Partial:** authenticated route and role-guard behavior is covered by backend tests; no live UI role matrix was run. |
 | 3 | Upload a text PDF and inspect section metadata | **Partial:** extracted the repository AUTOSAR PDF and ran the parser/chunker benchmark; no authenticated end-to-end upload was run. |
 | 4 | Upload a scanned PDF and verify OCR | **Not run:** no scanned-PDF upload session was run. Existing OCR/entity API tests pass. |
 | 5 | Entity recognition count (135 on benchmark) | **Not run:** the live benchmark recognizer was not run. Existing recognition behavior/cache tests pass. |
-| 6 | Live Ask AI questions against Ollama with citations | **Not run:** Ollama was mocked in tests; no live local model answer was generated. |
+| 6 | Live Ask AI questions against Ollama with citations | **Partial:** one local end-to-end answer was generated after the embedding-cache fix; the three target questions and answer quality were not fully benchmarked. |
 | 7 | Live out-of-scope refusal | **Not run:** requires a live local model; grounding and mocked-client tests passed. |
 | 8 | Revision comparison v1 vs v2 | **Not run:** no real two-version benchmark comparison was run. Comparison export now requires stored, signed-off versions. |
 | 9 | Review Queue approve/reject/correct/sign-off UI | **Partial:** backend persistence, action validation, and sign-off invalidation tests pass; no manual browser session was run. |
@@ -96,4 +96,14 @@ The section-aware average remains below the 800–1,200-character target because
 
 - Export sign-off validity is tied to the stored document version and a digest of the current review set. Changing a finding after sign-off invalidates it.
 - Directly uploaded, ad-hoc PDF comparisons are blocked; only stored document versions with current sign-offs can be exported.
-- Live Ollama answers, scanned-PDF ingestion, the 135-entity benchmark, the live revision comparison, and manual browser flows remain to be checked in an environment with the application services and model available.
+- Scanned-PDF ingestion, the 135-entity benchmark, the live revision comparison, and manual browser flows remain to be checked in an environment with the application services available.
+
+## Ask AI responsiveness follow-up
+
+The embedding model now loads from the local cache only and is reused for the lifetime of each backend process. If its files are missing, the query API returns HTTP 503 with a specific setup message instead of retrying a network lookup. The Ask AI page distinguishes “no passages retrieved” from “passages retrieved but insufficient evidence.”
+
+**Files:** modified `rag/embeddings.py`, `rag/retriever.py`, `rag/rag_pipeline.py`, `rag/uploaded_document_db.py`, `rag/vector_store.py`, `backend/routes/query.py`, and `frontend/src/pages/AskAI.jsx`; added `tests/test_embeddings.py` and a query endpoint regression test in `tests/test_entity_api.py`.
+
+**Configuration and database:** no new environment variables or migrations.
+
+**Verification:** with `HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1`, retrieval returned five passages for a sample AUTOSAR question. A full local answer was generated using the cached embedder and installed local Ollama model. The test suite now has 33 tests.

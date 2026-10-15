@@ -3,7 +3,7 @@ from pathlib import Path
 
 import chromadb
 
-from rag.embeddings import EmbeddingModel
+from rag.embeddings import get_embedding_model
 from database.access_control import (
     AuthorizationError,
     list_project_documents,
@@ -19,6 +19,13 @@ LEXICAL_STOP_WORDS = {
     "this", "that", "from", "with", "into", "does", "how", "which", "who",
     "is", "a", "an", "of", "and", "in", "for", "to",
 }
+
+
+def expand_query(query: str) -> str:
+    expanded = re.sub(r"\bgenai\b", "generative ai", query, flags=re.IGNORECASE)
+    expanded = re.sub(r"\bllms\b", "large language models", expanded, flags=re.IGNORECASE)
+    expanded = re.sub(r"\bllm\b", "large language model", expanded, flags=re.IGNORECASE)
+    return expanded
 
 
 def search_documents(
@@ -51,10 +58,11 @@ def search_documents(
         and collection_sample["metadatas"][0].get("document_id")
     )
 
-    embedding_model = EmbeddingModel()
+    embedding_model = get_embedding_model()
 
+    effective_query = expand_query(query)
     query_embedding = embedding_model.encode(
-        [query]
+        [effective_query]
     )
 
     query_options = {
@@ -88,7 +96,8 @@ def search_documents(
     }
     query_terms = {
         term
-        for term in re.findall(r"\b[^\W\d_]{3,}\b", query.lower(), flags=re.UNICODE)
+        for text in (query, effective_query)
+        for term in re.findall(r"\b[^\W\d_]{3,}\b", text.lower(), flags=re.UNICODE)
         if term not in LEXICAL_STOP_WORDS
     }
     if query_terms:

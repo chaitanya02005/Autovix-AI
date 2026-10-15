@@ -4,10 +4,12 @@ from backend.dependencies import get_authorized_project, get_current_user
 from backend.schemas import QueryRequest, QueryResponse
 from database.audit_log import log_event
 from rag.citation import format_sources
+from rag.embeddings import EmbeddingModelUnavailableError
 from rag.llm_client import LLMUnavailableError, generate_answer, model_name
 from rag.grounding_guard import check_grounding
 from rag.rag_answer import build_context
 from rag.rag_pipeline import retrieve_context
+from rag.retriever import expand_query
 
 
 router = APIRouter(prefix="/projects/{project_id}/query", tags=["query"])
@@ -28,6 +30,14 @@ def query_project(
             user_id=current_user["id"],
             project_id=project["id"],
         )
+    except EmbeddingModelUnavailableError as error:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "local_embedding_model_unavailable",
+                "message": str(error),
+            },
+        ) from None
     except Exception as error:
         if error.__class__.__name__ in {"NotFoundError", "InvalidCollectionException"}:
             raise HTTPException(
@@ -45,7 +55,13 @@ def query_project(
             "Answer the question using only the supplied project document context. "
             f"If it is not answered there, respond exactly: '{FALLBACK_ANSWER}'"
         )
-        user_prompt = f"DOCUMENT CONTEXT:\n{context}\n\nQUESTION:\n{request.question}"
+        effective_question = expand_query(request.question)
+        question_text = (
+            request.question
+            if request.question.strip().lower() == effective_question.strip().lower()
+            else f"{request.question} ({effective_question})"
+        )
+        user_prompt = f"DOCUMENT CONTEXT:\n{context}\n\nQUESTION:\n{question_text}"
         try:
             answer = generate_answer(system_prompt, user_prompt) or FALLBACK_ANSWER
         except LLMUnavailableError as error:

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import chromadb
 
-from rag.embeddings import EmbeddingModel
+from rag.embeddings import get_embedding_model
 from database.access_control import AuthorizationError, project_collection_name
 
 
@@ -38,7 +38,7 @@ def build_uploaded_database(json_path, *, user_id=None, project_id=None, collect
         if replace_document:
             collection.delete(where={"document_id": str(data["document_id"])})
         return authorized_collection
-    embedding_model = EmbeddingModel()
+    embedding_model = get_embedding_model()
     texts = [chunk["text"] for chunk in chunks]
     embeddings = embedding_model.encode(texts)
     document_id = str(data["document_id"])
