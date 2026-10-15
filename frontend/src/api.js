@@ -1,8 +1,7 @@
 /**
  * Centralized API service for Autovix
  */
-
-const API_BASE = '/api';
+const API_BASE = (import.meta.env?.VITE_API_BASE || '/api').replace(/\/$/, '');
 
 let authToken = localStorage.getItem('autovix_token') || null;
 
