@@ -147,3 +147,60 @@ def test_legacy_json_migration_preserves_backup(review_project, tmp_path, monkey
     assert len(rows) == 1
     assert rows[0]["status"] == "approved"
     assert rows[0]["item_metadata"]["question"] == "What is the interface?"
+
+
+def test_export_requires_approval_and_signoff_and_contains_metadata(review_project):
+    project_id = review_project["project_id"]
+    admin = _headers(review_project["admin"])
+    architect = _headers(review_project["architect"])
+    base = f"/api/projects/{project_id}/documents/doc-review"
+    with TestClient(app) as client:
+        client.post(f"{base}/entities/recognize", headers=admin)
+        blocked_empty = client.get(f"{base}/entities/export/json", headers=admin)
+        queue = client.get(f"{base}/reviews", headers=architect).json()
+        entity = next(row for row in queue if row["item_type"] == "entity")
+        client.post(f"{base}/reviews/entity/{entity['item_id']}/approve", headers=architect)
+        blocked_unsigned = client.get(f"{base}/entities/export/json", headers=admin)
+        signoff = client.post(f"{base}/reviews/signoff", headers=architect)
+        exported_json = client.get(f"{base}/entities/export/json", headers=admin)
+        exported_csv = client.get(f"{base}/entities/export/csv", headers=admin)
+
+    assert blocked_empty.status_code == 409
+    assert blocked_empty.json()["error"]["message"] == "Export blocked: no findings have been approved by an authorized engineer."
+    assert blocked_unsigned.status_code == 409
+    assert "sign-off" in blocked_unsigned.json()["error"]["message"]
+    assert signoff.status_code == 201
+    assert exported_json.status_code == exported_csv.status_code == 200
+    payload = exported_json.json()
+    assert payload["metadata"]["document_id"] == "doc-review"
+    assert payload["metadata"]["version"] == 1
+    assert payload["metadata"]["approved_count"] == 1
+    assert payload["records"][0]["review_status"] in {"approved", "corrected"}
+    assert "# export_metadata:" in exported_csv.text
+    assert any("reviewed_by" in line for line in exported_csv.text.splitlines())
+
+
+def test_signoff_invalidates_when_review_changes_and_draft_is_admin_only(review_project):
+    project_id = review_project["project_id"]
+    admin = _headers(review_project["admin"])
+    architect = _headers(review_project["architect"])
+    viewer = _headers(review_project["viewer"])
+    base = f"/api/projects/{project_id}/documents/doc-review"
+    with TestClient(app) as client:
+        client.post(f"{base}/entities/recognize", headers=admin)
+        queue = client.get(f"{base}/reviews", headers=architect).json()
+        entity = next(row for row in queue if row["item_type"] == "entity")
+        client.post(f"{base}/reviews/entity/{entity['item_id']}/approve", headers=architect)
+        client.post(f"{base}/reviews/signoff", headers=architect)
+        unsigned_draft = client.get(f"{base}/entities/export/json?include_unapproved=true", headers=viewer)
+        draft = client.get(f"{base}/entities/export/json?include_unapproved=true", headers=admin)
+        client.post(f"{base}/reviews/entity/{entity['item_id']}/correct",
+                    json={"corrected_value": "PPort corrected", "comment": "Updated after review."}, headers=architect)
+        invalidated = client.get(f"{base}/entities/export/json", headers=admin)
+
+    assert unsigned_draft.status_code == 403
+    assert draft.status_code == 200
+    assert "UNAPPROVED - DRAFT" in draft.headers["content-disposition"]
+    assert draft.json()["metadata"]["marker"] == "UNAPPROVED - DRAFT"
+    assert invalidated.status_code == 409
+    assert "sign-off" in invalidated.json()["error"]["message"]

@@ -54,7 +54,8 @@ def test_entity_recognition_endpoint_returns_cached_scoped_entities(authorized_d
     assert listed.json()["cached"] is True
     assert detail.json()["name"] == "PPort"
     assert detail.json()["source_evidence"][0]["page"] == 1
-    assert "PPort" in exported.text
+    assert exported.status_code == 409
+    assert exported.json()["error"]["message"] == "Export blocked: no findings have been approved by an authorized engineer."
     assert wrong_project.status_code == 403
 
 

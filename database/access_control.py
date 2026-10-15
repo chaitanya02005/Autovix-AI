@@ -104,6 +104,17 @@ def init_db():
                 source_path TEXT PRIMARY KEY,
                 migrated_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS signoffs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                document_id TEXT NOT NULL,
+                document_version INTEGER NOT NULL,
+                findings_digest TEXT NOT NULL,
+                signed_by INTEGER NOT NULL REFERENCES users(id),
+                signed_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_signoffs_project_document
+                ON signoffs(project_id, document_id, document_version, signed_at);
             CREATE INDEX IF NOT EXISTS idx_memberships_user ON project_memberships(user_id);
             CREATE INDEX IF NOT EXISTS idx_documents_project ON documents(project_id);
             """

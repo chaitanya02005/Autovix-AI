@@ -188,6 +188,14 @@ export const api = {
     return request(`/projects/${projectId}/documents/${documentId}/reviews/summary`);
   },
 
+  async getDocumentSignoff(projectId, documentId) {
+    return request(`/projects/${projectId}/documents/${documentId}/reviews/signoff`);
+  },
+
+  async signoffDocument(projectId, documentId) {
+    return request(`/projects/${projectId}/documents/${documentId}/reviews/signoff`, { method: 'POST' });
+  },
+
   async submitAnswerForReview(projectId, documentId, payload) {
     return request(`/projects/${projectId}/documents/${documentId}/reviews`, {
       method: 'POST',
@@ -247,7 +255,8 @@ export const api = {
   },
 
   // Exports
-  async exportData(projectId, artifact, format = 'json') {
-    return request(`/projects/${projectId}/exports/${artifact}?format=${format}`);
+  async exportData(projectId, artifact, format = 'json', params = {}) {
+    const query = new URLSearchParams({ format, ...params }).toString();
+    return request(`/projects/${projectId}/exports/${artifact}?${query}`);
   },
 };

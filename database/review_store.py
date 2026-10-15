@@ -114,12 +114,19 @@ def ensure_item_review(project_id, document_id, item_type, item_id, original_val
     now = _now()
     with _connect() as connection:
         connection.execute(
-            """INSERT OR IGNORE INTO reviews
+            """INSERT INTO reviews
                (project_id, document_id, item_type, item_id, status, original_value,
                 item_metadata, created_at, updated_at)
-               VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?)
+               ON CONFLICT(project_id, document_id, item_type, item_id) DO UPDATE SET
+                 original_value = excluded.original_value,
+                 item_metadata = excluded.item_metadata,
+                 updated_at = CASE
+                   WHEN reviews.original_value != excluded.original_value
+                     OR reviews.item_metadata != excluded.item_metadata
+                   THEN excluded.updated_at ELSE reviews.updated_at END""",
             (int(project_id), document_id, item_type, str(item_id), str(original_value),
-             json.dumps(item_metadata or {}, ensure_ascii=False), now, now),
+             json.dumps(item_metadata or {}, ensure_ascii=False, sort_keys=True), now, now),
         )
         return _record(_get_row(connection, project_id, document_id, item_type, item_id))
 
@@ -222,6 +229,58 @@ def update_item_review(
 def review_summary(project_id, document_id, *, user_id):
     records = list_document_reviews(project_id, document_id, user_id=user_id)
     return {status: sum(record["status"] == status for record in records) for status in VALID_STATUSES}
+
+
+def findings_digest(project_id, document_id, *, user_id):
+    records = list_document_reviews(project_id, document_id, user_id=user_id)
+    snapshot = [
+        {
+            "item_type": row["item_type"], "item_id": row["item_id"],
+            "status": row["status"], "original_value": row["original_value"],
+            "corrected_value": row["corrected_value"], "comment": row["comment"],
+            "reviewer_user_id": row["reviewer_user_id"],
+            "item_metadata": row["item_metadata"], "updated_at": row["updated_at"],
+        }
+        for row in sorted(records, key=lambda item: (item["item_type"], item["item_id"]))
+    ]
+    return hashlib.sha256(json.dumps(snapshot, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+def create_signoff(project_id, document_id, document_version, *, user_id):
+    project = require_project_access(user_id, project_id)
+    digest = findings_digest(project["id"], document_id, user_id=user_id)
+    now = _now()
+    with _connect() as connection:
+        cursor = connection.execute(
+            """INSERT INTO signoffs
+               (project_id, document_id, document_version, findings_digest, signed_by, signed_at)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (project["id"], str(document_id), int(document_version), digest, int(user_id), now),
+        )
+        row = connection.execute(
+            """SELECT s.*, u.username AS signer FROM signoffs s
+               JOIN users u ON u.id = s.signed_by WHERE s.id = ?""",
+            (cursor.lastrowid,),
+        ).fetchone()
+    return dict(row)
+
+
+def current_signoff(project_id, document_id, document_version, *, user_id):
+    project = require_project_access(user_id, project_id)
+    digest = findings_digest(project["id"], document_id, user_id=user_id)
+    with _connect() as connection:
+        row = connection.execute(
+            """SELECT s.*, u.username AS signer FROM signoffs s
+               JOIN users u ON u.id = s.signed_by
+               WHERE s.project_id = ? AND s.document_id = ? AND s.document_version = ?
+               ORDER BY s.id DESC LIMIT 1""",
+            (project["id"], str(document_id), int(document_version)),
+        ).fetchone()
+    if row is None:
+        return None
+    result = dict(row)
+    result["valid"] = result["findings_digest"] == digest
+    return result
 
 
 def save_review(question, answer, confidence, review_status, *, user_id=None, project_id=None):

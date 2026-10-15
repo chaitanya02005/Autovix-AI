@@ -9,7 +9,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response
 
 from backend.dependencies import get_authorized_project, get_current_user
-from backend.export_utils import export_csv_bytes, export_json_bytes
+from backend.export_utils import (
+    ExportBlockedError,
+    ExportForbiddenError,
+    export_csv_bytes,
+    export_json_bytes,
+    prepare_document_export,
+)
 from database.access_control import AuthorizationError, get_project_document
 from database.audit_log import log_event
 from database.review_store import ensure_item_review, review_status_map
@@ -237,14 +243,41 @@ def export_document_entities(
     project_id: int,
     document_id: str,
     format: Literal["json", "csv"],
+    include_unapproved: bool = Query(default=False),
     current_user: dict = Depends(get_current_user),
     project: dict = Depends(get_authorized_project),
 ):
     document = _get_document(current_user["id"], project["id"], document_id)
     entities = _load_document_entities(document)
     if entities is None:
+        log_event("EXPORT", user_id=current_user["id"], username=current_user["username"],
+                  project_id=project["id"], document_id=document_id, status="blocked",
+                  details={"client": "api", "format": format, "reason": "entities_not_processed"})
         raise HTTPException(status_code=404, detail={"code": "entities_not_processed", "message": "Run entity recognition before exporting."})
-    filename = f"entities_{document_id}.{format}"
+    entities = _with_review_status(entities, project["id"], document_id, current_user["id"])
+    try:
+        records, metadata = prepare_document_export(
+            entities, project["id"], document, user_id=current_user["id"],
+            role=project["role"], include_unapproved=include_unapproved,
+        )
+    except ExportForbiddenError as error:
+        log_event("EXPORT", user_id=current_user["id"], username=current_user["username"],
+                  project_id=project["id"], document_id=document_id, status="blocked",
+                  details={"client": "api", "format": format, "reason": str(error),
+                           "include_unapproved": include_unapproved})
+        raise HTTPException(status_code=403, detail={"code": "export_forbidden", "message": str(error)}) from None
+    except ExportBlockedError as error:
+        log_event("EXPORT", user_id=current_user["id"], username=current_user["username"],
+                  project_id=project["id"], document_id=document_id, status="blocked",
+                  details={"client": "api", "format": format, "reason": str(error),
+                           "include_unapproved": include_unapproved})
+        raise HTTPException(status_code=409, detail={"code": "export_blocked", "message": str(error)}) from None
+    log_event("EXPORT", user_id=current_user["id"], username=current_user["username"],
+              project_id=project["id"], document_id=document_id,
+              details={"client": "api", "format": format, "approved_count": metadata["approved_count"],
+                       "excluded_count": metadata["excluded_count"], "include_unapproved": include_unapproved})
+    draft_suffix = "_UNAPPROVED - DRAFT" if include_unapproved else ""
+    filename = f"entities_{document_id}{draft_suffix}.{format}"
     if format == "csv":
-        return Response(export_csv_bytes(entities), media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="{filename}"'})
-    return Response(export_json_bytes(entities, filename), media_type="application/json", headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+        return Response(export_csv_bytes(records, metadata=metadata), media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+    return Response(export_json_bytes(records, filename, metadata=metadata), media_type="application/json", headers={"Content-Disposition": f'attachment; filename="{filename}"'})

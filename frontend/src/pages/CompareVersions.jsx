@@ -15,14 +15,24 @@ import {
 export default function CompareVersions() {
   const {
     currentProjectId,
+    documents,
     comparisonResult,
     setComparisonResult,
+    setSelectedTab,
     addToast,
   } = useApp();
 
   const [oldFile, setOldFile] = useState(null);
   const [newFile, setNewFile] = useState(null);
   const [comparing, setComparing] = useState(false);
+  const [baselineDocumentId, setBaselineDocumentId] = useState('');
+  const [currentDocumentId, setCurrentDocumentId] = useState('');
+  const [exportError, setExportError] = useState('');
+
+  React.useEffect(() => {
+    if (!baselineDocumentId && documents.length > 1) setBaselineDocumentId(documents[1].document_id);
+    if (!currentDocumentId && documents.length > 0) setCurrentDocumentId(documents[0].document_id);
+  }, [documents, baselineDocumentId, currentDocumentId]);
 
   const handleRunComparison = async () => {
     if (!oldFile || !newFile || !currentProjectId) return;
@@ -40,19 +50,26 @@ export default function CompareVersions() {
     }
   };
 
-  const handleDownloadJson = () => {
-    if (!comparisonResult) return;
-    const jsonStr = JSON.stringify(comparisonResult, null, 2);
-    const blob = new Blob([jsonStr], { type: 'application/json' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'comparison_diff.json';
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-    addToast('Downloaded comparison_diff.json', 'info');
+  const handleDownloadJson = async () => {
+    if (!baselineDocumentId || !currentDocumentId || baselineDocumentId === currentDocumentId) return;
+    setExportError('');
+    try {
+      const payload = await api.exportData(currentProjectId, 'comparison', 'json', {
+        baseline_document_id: baselineDocumentId,
+        current_document_id: currentDocumentId,
+      });
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = 'signed_off_comparison.json';
+      anchor.click();
+      window.URL.revokeObjectURL(url);
+      addToast('Downloaded signed-off comparison.', 'success');
+    } catch (error) {
+      if (error.status === 409) setExportError(error.message);
+      addToast(`Export failed: ${error.message}`, 'error');
+    }
   };
 
   const nAdd = comparisonResult?.added?.length || 0;
@@ -227,13 +244,24 @@ export default function CompareVersions() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-[#0f172a]">Detailed Architecture Changes</h2>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-3">
+              <span className="text-[11px] text-slate-500">Ad-hoc file comparisons are for analysis. Export requires stored, signed-off document versions.</span>
+              <select value={baselineDocumentId} onChange={(event) => setBaselineDocumentId(event.target.value)} className="h-8 rounded-md border border-slate-200 px-2 text-xs">
+                <option value="">Baseline document</option>{documents.map((document) => <option key={document.document_id} value={document.document_id}>{document.filename} · v{document.version}</option>)}
+              </select>
+              <select value={currentDocumentId} onChange={(event) => setCurrentDocumentId(event.target.value)} className="h-8 rounded-md border border-slate-200 px-2 text-xs">
+                <option value="">Current document</option>{documents.map((document) => <option key={document.document_id} value={document.document_id}>{document.filename} · v{document.version}</option>)}
+              </select>
               <button
                 onClick={handleDownloadJson}
-                className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition-colors inline-flex items-center gap-1.5 shadow-xs"
+                disabled={!baselineDocumentId || !currentDocumentId || baselineDocumentId === currentDocumentId}
+                className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg transition-colors inline-flex items-center gap-1.5 shadow-xs disabled:opacity-40"
               >
                 <Download className="w-3.5 h-3.5 text-slate-500" />
-                <span>Export Diff JSON</span>
+                <span>Export signed-off JSON</span>
               </button>
+              {exportError && <div role="alert" className="w-full text-xs text-rose-700">{exportError} <button onClick={() => setSelectedTab('Review Queue')} className="font-semibold underline">Open Review Queue</button></div>}
             </div>
 
             {nAdd > 0 || nRem > 0 ? (

@@ -6,7 +6,7 @@ import { Download, FileSearch, Search, ExternalLink, Network, CheckCircle2 } fro
 const types = ['All types', 'Software Component', 'Port', 'Interface', 'Service', 'Data Element', 'Data Type', 'Operation', 'Event', 'Architecture Concept'];
 
 export default function ArchitectureEntityRecognition() {
-  const { currentProjectId, documents, addToast } = useApp();
+  const { currentProjectId, documents, addToast, setSelectedTab } = useApp();
   const [documentId, setDocumentId] = useState('');
   const [result, setResult] = useState(null);
   const [selected, setSelected] = useState(null);
@@ -14,6 +14,7 @@ export default function ArchitectureEntityRecognition() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('All types');
   const [pageFilter, setPageFilter] = useState('');
+  const [exportError, setExportError] = useState('');
   const detailRequest = useRef(0);
 
   useEffect(() => {
@@ -40,6 +41,8 @@ export default function ArchitectureEntityRecognition() {
     counts[entity.entity_type] = (counts[entity.entity_type] || 0) + 1;
     return counts;
   }, {}), [entities]);
+  const approvedCount = entities.filter((entity) => ['approved', 'corrected'].includes(entity.review_status)).length;
+  const pendingCount = entities.filter((entity) => entity.review_status === 'pending').length;
 
   const runRecognition = async (forceArg = false) => {
     const force = forceArg === true;
@@ -70,8 +73,10 @@ export default function ArchitectureEntityRecognition() {
   };
 
   const download = async (format) => {
+    setExportError('');
     try {
-      const blob = await api.exportDocumentEntities(currentProjectId, documentId, format);
+      const response = await api.exportDocumentEntities(currentProjectId, documentId, format);
+      const blob = format === 'csv' ? response : new Blob([JSON.stringify(response, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
@@ -79,6 +84,7 @@ export default function ArchitectureEntityRecognition() {
       anchor.click();
       URL.revokeObjectURL(url);
     } catch (error) {
+      if (error.status === 409) setExportError(error.message);
       addToast(`Export failed: ${error.message}`, 'error');
     }
   };
@@ -122,6 +128,11 @@ export default function ArchitectureEntityRecognition() {
           </div>
         )}
       </div>
+
+      {result?.status?.startsWith('completed') && <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+        <span>Approved: <strong className="text-emerald-700">{approvedCount}</strong> · Pending: <strong className="text-amber-700">{pendingCount}</strong></span>
+        {exportError && <span role="alert" className="text-rose-700">{exportError} <button onClick={() => setSelectedTab('Review Queue')} className="ml-1 font-semibold underline">Open Review Queue</button></span>}
+      </div>}
 
       {/* Document Selection and Action Card */}
       <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-xs md:grid-cols-[1fr_auto] md:items-end">

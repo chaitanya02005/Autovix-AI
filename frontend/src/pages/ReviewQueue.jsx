@@ -19,6 +19,7 @@ export default function ReviewQueue() {
   const [documentId, setDocumentId] = useState(documentInfo?.document_id || documents[0]?.document_id || '');
   const [items, setItems] = useState([]);
   const [summary, setSummary] = useState({ pending: 0, approved: 0, rejected: 0, corrected: 0 });
+  const [signoff, setSignoff] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -45,12 +46,14 @@ export default function ReviewQueue() {
     setLoading(true);
     setError('');
     try {
-      const [records, counts] = await Promise.all([
+      const [records, counts, signoffData] = await Promise.all([
         api.getDocumentReviews(currentProjectId, documentId),
         api.getDocumentReviewSummary(currentProjectId, documentId),
+        api.getDocumentSignoff(currentProjectId, documentId),
       ]);
       setItems(records);
       setSummary(counts);
+      setSignoff(signoffData);
       setSelectedIds([]);
     } catch (requestError) {
       setError(requestError.message || 'Could not load review items.');
@@ -98,6 +101,16 @@ export default function ReviewQueue() {
     }
   };
 
+  const handleSignoff = async () => {
+    try {
+      await api.signoffDocument(currentProjectId, documentId);
+      addToast('Document version signed off for export.', 'success');
+      await loadReviews();
+    } catch (requestError) {
+      addToast(requestError.message || 'Could not sign off this document.', 'error');
+    }
+  };
+
   const entityTypes = [...new Set(items.map((item) => item.item_metadata?.entity?.entity_type).filter(Boolean))].sort();
   const toggleSelected = (itemId) => setSelectedIds((ids) => ids.includes(itemId) ? ids.filter((id) => id !== itemId) : [...ids, itemId]);
 
@@ -115,8 +128,13 @@ export default function ReviewQueue() {
           <button onClick={loadReviews} disabled={loading || !documentId} className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 disabled:opacity-50">
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </button>
+          {canReview && <button onClick={handleSignoff} disabled={loading || !documentId} className="h-9 rounded-lg bg-[#0f172a] px-3 text-xs font-semibold text-white disabled:opacity-50">Sign off for export</button>}
         </div>
       </div>
+
+      {signoff && <div className={`rounded-lg border px-3 py-2 text-xs ${signoff.valid ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+        {signoff.valid ? `Signed off by ${signoff.signer} at ${signoff.signed_at} for v${signoff.document_version}.` : 'This document version needs a current engineer sign-off before export.'}
+      </div>}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {statuses.map((status) => (

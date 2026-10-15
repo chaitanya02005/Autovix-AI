@@ -15,6 +15,8 @@ from database.audit_log import log_event
 from database.access_control import AuthorizationError, get_project_document
 from database.review_store import (
     create_item_review,
+    create_signoff,
+    current_signoff,
     ensure_item_review,
     list_document_reviews,
     list_project_item_reviews,
@@ -170,6 +172,41 @@ def get_document_review_summary(
     document = _require_document_access(current_user["id"], project["id"], document_id)
     _ensure_entity_review_rows(document, current_user["id"])
     return review_summary(project["id"], document_id, user_id=current_user["id"])
+
+
+@document_router.get("/signoff", summary="Get the current document export sign-off")
+def get_document_signoff(
+    project_id: int,
+    document_id: str,
+    current_user: dict = Depends(get_current_user),
+    project: dict = Depends(get_authorized_project),
+):
+    document = _require_document_access(current_user["id"], project["id"], document_id)
+    _ensure_entity_review_rows(document, current_user["id"])
+    signoff = current_signoff(project["id"], document_id, document["version"], user_id=current_user["id"])
+    return signoff or {"valid": False, "document_version": document["version"]}
+
+
+@document_router.post("/signoff", status_code=201, summary="Sign off a document version for export")
+def signoff_document_for_export(
+    project_id: int,
+    document_id: str,
+    current_user: dict = Depends(get_current_user),
+    project: dict = Depends(get_authorized_project),
+):
+    require_project_roles(project, "admin", "architect")
+    document = _require_document_access(current_user["id"], project["id"], document_id)
+    _ensure_entity_review_rows(document, current_user["id"])
+    record = create_signoff(
+        project["id"], document_id, document["version"], user_id=current_user["id"]
+    )
+    log_event(
+        "EXPORT_SIGNOFF", user_id=current_user["id"], username=current_user["username"],
+        project_id=project["id"], document_id=document_id,
+        details={"action": "sign_off_for_export", "actor_user_id": current_user["id"],
+                 "document_version": document["version"], "signoff_id": record["id"]},
+    )
+    return record
 
 
 @document_router.post("", status_code=201, summary="Send an answer for review")
