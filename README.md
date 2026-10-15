@@ -1,137 +1,202 @@
 # Autovix
 
-## Description
-Autovix is an intelligent, multi-tenant workspace designed for analyzing and managing **AUTOSAR High-Level Design (HLD) documents**. It automatically ingests massive PDF specifications and extracts architecture entities (components, ports, services). Additionally, it features an interactive AI assistant powered by Retrieval-Augmented Generation (RAG) that answers architectural questions with guaranteed traceability back to the exact source pages.
+Autovix is a local-first workspace for processing AUTOSAR architecture PDFs. It extracts searchable page text, tables, and explicitly named architecture entities; answers questions with a local retrieval-augmented generation (RAG) pipeline; compares stored document versions; and provides review and sign-off controls for exports.
 
-**Key Features:**
-- **Intelligent Parsing:** Reads text, tables, and scanned architecture diagrams using OCR.
-- **Automated Extraction:** Extracts Components, PPorts, RPorts, and Service Instances.
-- **Architecture Entity Recognition:** Select a project document version, recognize explicitly named components, ports, interfaces, services, data elements and types, operations, and events, then inspect page-level source evidence or export JSON/CSV. (Sample document provided [below](#sample-document--architecture-entity-recognition)).
-- **Traceable AI Chat:** Natural language questions are strictly grounded in your documents.
-- **Version Comparison:** Compare document versions to see added, removed, or modified components.
+Autovix is a development application, not a certified engineering or safety-analysis tool. Answers and extracted records need engineering review before they are used in a design decision.
 
-### Architecture Diagram
+## Features
+
+- **Project workspaces and access control:** Projects are scoped to authenticated users. Project roles are `admin`, `architect`, and `viewer`; upload, review, and export actions are role-controlled in the API.
+- **PDF ingestion and version history:** Upload PDFs, retain successive versions by project and filename, extract page text and detected tables, and store page-aware artifacts. New text chunks include detected section paths and page ranges.
+- **Ask AI:** Retrieve passages from the latest document version in the selected project and generate answers with a local `sentence-transformers/all-MiniLM-L6-v2` embedding model and Ollama. Answers include source pages, retrieved passages, a retrieval-confidence indicator, and a grounding status. The assistant can return a “not enough information” answer when the context does not support the question.
+- **Architecture Entity Recognition:** Find explicitly named software components, interfaces, ports, services, architecture concepts, data elements, data types, operations, and events in extracted page text and table text. Entity records include page excerpts and section evidence. Recognition is deterministic; it does not interpret diagram geometry or infer an architecture graph.
+- **Review Queue:** Review entity findings and submitted AI answers. Authorized reviewers can approve, reject, or correct findings; rejection and correction actions require comments. Entity items can be bulk-approved.
+- **Version comparison:** Compare entities and traceability records from two stored versions, or run an ad-hoc analysis on two uploaded PDFs. These comparisons report added, removed, and unchanged records.
+- **Governed exports:** Export entity, traceability, and stored-version comparison results as JSON or CSV. A valid sign-off is required for each stored document version involved; at least one finding must be approved or corrected. Exporting unapproved draft findings is restricted to admins and marks the output as a draft. Ad-hoc PDF comparison results cannot be exported.
+- **Dashboard, audit, and system status:** View project counts, recent activity, audit events, and local engine health.
+
+## How it works
+
 ```text
-┌──────────┐       ┌─────────────────┐       ┌───────────┐
-│   User   │──────▶│ React (Vite UI) │──────▶│  FastAPI  │
-└──────────┘       └─────────────────┘       └───────────┘
-                                             │
-                       ┌─────────────────────┴─────────────────────┐
-                       ▼ (Upload)                                  ▼ (Query)
-                 ┌───────────┐                               ┌───────────┐
-                 │ Ingestion │                               │ RAG Embed │
-                 │(Parse PDF)│                               │ (Query)   │
-                 └───────────┘                               └───────────┘
-                       │                                           │
-         ┌─────────────┴─────────────┐                             │
-         ▼                           ▼                             ▼
-   ┌───────────┐               ┌───────────┐                 ┌───────────┐
-   │Extraction │               │ ChromaDB  │◀────────────────│ Retrieve  │
-   │(Entities) │               │(Vectors)  │                 └───────────┘
-   └───────────┘               └───────────┘                       │
-         │                                                         ▼
-         ▼                                                   ┌───────────┐
-   ┌───────────┐                                             │ Ollama LLM │
-   │ SQLite DB │                                             │ (Answer)  │
-   └───────────┘                                             └───────────┘
+Browser (React + Vite)
+        │ HTTP / JSON
+        ▼
+FastAPI backend ─────────────── Local Ollama chat model
+        │                        (answer generation)
+        ├── PDF text: PyMuPDF
+        ├── PDF tables: pdfplumber
+        ├── OCR fallback: Tesseract (optional)
+        ├── Local embeddings: Sentence Transformers
+        ├── Vector search: ChromaDB
+        └── Workspace data: SQLite + local JSON artifacts
 ```
 
-## Sample Document & Architecture Entity Recognition
+PDFs are processed in the backend. Page text, table text, section metadata, traceability records, and entity cache files are stored locally under `data/processed/`; vectors are stored under `data/chroma/`. Project, account, review, and sign-off data are stored in local SQLite databases. Ask AI sends prompts to the configured Ollama service; it does not use a cloud LLM provider by default. The embedding model must already be cached locally before the API can load it.
 
-To test and verify the **Architecture Entity Recognition** capabilities of Autovix, a complete benchmark AUTOSAR specification document is provided in this repository.
+## Requirements
 
-### 📥 Download the Sample PDF
-Download the sample document using any of the following links:
-- 🔗 **Direct Download (Repository File):** [Download `AUTOSAR_AP_EXP_SWArchitecture.pdf`](./sample_documents/AUTOSAR_AP_EXP_SWArchitecture.pdf)
-- 🌐 **GitHub Raw Download:** [Download from GitHub Raw](https://raw.githubusercontent.com/chaitanya02005/Autovix-AI/main/sample_documents/AUTOSAR_AP_EXP_SWArchitecture.pdf)
-- 📂 **View in Repository:** [Browse `sample_documents/AUTOSAR_AP_EXP_SWArchitecture.pdf`](https://github.com/chaitanya02005/Autovix-AI/blob/main/sample_documents/AUTOSAR_AP_EXP_SWArchitecture.pdf)
+- Python 3.10 or later with `pip`
+- Node.js 18 or later and npm (Vite 6 supports Node 18, 20, or 22+)
+- [Ollama](https://ollama.com/download) and a local chat model, default `llama3.1:8b`
+- Tesseract OCR only if uploaded PDFs contain scanned pages that need OCR
 
-### 📄 Document Details
-| Property | Value |
-|---|---|
-| **Document Name** | `AUTOSAR_AP_EXP_SWArchitecture.pdf` |
-| **Title** | Explanation of Adaptive Platform Software Architecture |
-| **Standard & Release** | AUTOSAR Adaptive Platform Release R25-11 (Document ID: 982) |
-| **Repository Path** | [`sample_documents/AUTOSAR_AP_EXP_SWArchitecture.pdf`](./sample_documents/AUTOSAR_AP_EXP_SWArchitecture.pdf) |
-| **Document Size** | 269 pages (~1.7 MB) |
+The bundled sample PDF is [`sample_documents/AUTOSAR_AP_EXP_SWArchitecture.pdf`](sample_documents/AUTOSAR_AP_EXP_SWArchitecture.pdf) (269 pages, AUTOSAR Adaptive Platform R25-11).
 
-### 🔍 How to Test Architecture Entity Recognition with this Document
-1. **Download:** Click [Download `AUTOSAR_AP_EXP_SWArchitecture.pdf`](./sample_documents/AUTOSAR_AP_EXP_SWArchitecture.pdf) to save the sample document locally.
-2. **Upload to Autovix:** In the application (`http://localhost:5173`), navigate to the **Documents** tab and upload `AUTOSAR_AP_EXP_SWArchitecture.pdf`.
-3. **Open Architecture Entity Recognition:** In the sidebar menu, select **Architecture Entity Recognition**.
-4. **Select Document Version:** Choose `AUTOSAR_AP_EXP_SWArchitecture.pdf` from the document version selector.
-5. **Inspect Recognized Entities:**
-   - Explore extracted architecture entities across standard categories:
-     - **Services:** e.g., `Service-Oriented Communication`, `DownloadService`, `StateMachineService`, `UpdateAllowedService`
-     - **Software Components:** e.g., `SMControlApplication`, `ControlApplication`
-     - **Interfaces:** e.g., `WatchdogInterface`, `StateClientInterface`, `OperatingSystemInterface`, `SuspendToRamHubInterface`
-     - **Ports:** e.g., `PPortPrototype`, `RPortPrototype`
-     - **Operations:** e.g., `ServiceOperation`
-   - Click any entity row to inspect its exact **page-level source evidence excerpts** and section citations.
-   - Filter entities by type, search by name, or export the full entity catalogue as **JSON** or **CSV**.
+## Setup
 
-## Installation
-
-### Prerequisites
-1. **Python 3.10+**: Ensure Python and `pip` are installed.
-2. **Tesseract OCR**: Required for parsing images in PDFs.
-   - **macOS**: `brew install tesseract`
-   - **Ubuntu/Linux**: `sudo apt-get install tesseract-ocr`
-   - **Windows**: Download the installer from the [Tesseract GitHub](https://github.com/tesseract-ocr/tesseract).
-
-### Steps
-1. Clone the repository:
-   ```bash
-   git clone <your-repository-url>
-   cd Autovix
-   ```
-2. Create and activate a virtual environment:
-   ```bash
-   python3 -m venv venv
-   # On macOS/Linux
-   source venv/bin/activate
-   # On Windows use: venv\Scripts\activate
-   ```
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Install Ollama and download the default local model:
-   ```bash
-   # Install Ollama from https://ollama.com/download
-   ollama pull llama3.1:8b
-   ```
-   Configure the local model in `.env` as needed:
-   ```env
-   LLM_PROVIDER=ollama
-   OLLAMA_BASE_URL=http://localhost:11434
-   OLLAMA_MODEL=llama3.1:8b
-   LLM_TIMEOUT_SECONDS=120
-   LLM_TEMPERATURE=0.1
-   ```
-   To use another model hosted by Ollama, pull it and change `OLLAMA_MODEL` (for example, to a Qwen or Mistral model).
-
-## Usage
-1. Start the server and application:
-   ```bash
-   ./run.sh
-   ```
-2. Visit `http://localhost:5173` in your browser.
-3. **Upload:** Go to the "Documents" tab and upload an AUTOSAR PDF (you can use our [sample AUTOSAR PDF](./sample_documents/AUTOSAR_AP_EXP_SWArchitecture.pdf)).
-4. **Chat:** Go to "Ask AI" to ask questions about your architecture.
-5. **Compare:** Compare different document versions to track evolution.
-6. **Recognize entities:** Open **Architecture Entity Recognition**, select an uploaded document version (such as `AUTOSAR_AP_EXP_SWArchitecture.pdf`), and run recognition. Results are built from stored PDF/OCR page text and extracted table chunks. Cache entries are scoped to the project, document ID, version, source content, and recognition schema. Use **Rebuild results** to explicitly rerun recognition from the stored source. Selecting an entity shows its source page excerpts; filters support name, type, and page.
-
-Recognition is deterministic and evidence-backed. It scans stored page text directly (rather than relying on the separate traceability index), and uses stored table text when available. It does not use an external AI provider and does not interpret architecture diagram objects. The supported names are terminology explicitly matched in extracted source text; the current application has no interactive Architecture Explorer screen or relationship extraction source module. Relationship records are shown only when present in a document's existing `relationships.json` artifact. Entity review is presented as pending; approval/correction actions are not yet implemented for entities. Pages with no extracted text are reported as warnings; OCR depends on Tesseract being installed and configured.
-
-# Section-aware ingestion and re-indexing
-
-PDF ingestion stores the detected section outline at `data/processed/projects/{project_id}/{document_id}/sections.json` and adds section path and page range metadata to each new vector. Set `CHUNK_SIZE` (default `1000`) and `CHUNK_OVERLAP` (default `120`) to tune text chunking; overlap is applied at sentence boundaries. Tables remain individual Markdown chunks.
-
-To re-chunk an existing processed document, run:
+From the repository root:
 
 ```bash
-python -m ingestion.reindex_document --user-id USER_ID --project-id PROJECT_ID --document-id DOCUMENT_ID
+python3 -m venv venv
+source venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+npm ci --prefix frontend
 ```
 
-The command verifies project access, reads that document's saved extraction artifacts, and replaces vectors filtered to that document ID inside its project collection. Existing documents without section metadata remain searchable until re-indexed.
+On Windows, activate the virtual environment with `venv\Scripts\activate`. `run.sh` is a Bash script for macOS/Linux; on Windows, start the backend and frontend separately using the commands in [Running the application](#running-the-application).
+
+### Configure local models
+
+Start Ollama and download the default chat model:
+
+```bash
+ollama pull llama3.1:8b
+```
+
+If Ollama is not already running as a background service, start it in a separate terminal with `ollama serve`.
+
+The embedding model runs in local-only mode. Download and cache it once while internet access is available:
+
+```bash
+python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
+```
+
+After it is cached, document retrieval does not need to download the embedding model. If the model is missing, Ask AI returns a setup error rather than retrying a network download.
+
+### Optional OCR setup
+
+Install Tesseract and make sure `tesseract` is on `PATH`. On macOS, use `brew install tesseract`; on Debian or Ubuntu, use `sudo apt install tesseract-ocr`. On Windows, install Tesseract and set `TESSERACT_CMD` in `.env` to the executable path if it is not on `PATH`. OCR is only used for pages with very little extractable text.
+
+### Environment variables
+
+The defaults are listed in [`.env.example`](.env.example). Copy it if you want to customize them:
+
+```bash
+cp .env.example .env
+```
+
+`run.sh` does not automatically read `.env`. Load it into the shell before starting the app:
+
+```bash
+set -a
+source .env
+set +a
+```
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `LLM_PROVIDER` | `ollama` | Local answer provider; Ollama is the supported provider. |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama API address. |
+| `OLLAMA_MODEL` | `llama3.1:8b` | Model name used for answers. Pull the model before selecting it. |
+| `LLM_TIMEOUT_SECONDS` | `120` | Timeout for local model requests. |
+| `LLM_TEMPERATURE` | `0.1` | Ollama generation temperature. |
+| `CHUNK_SIZE` | `1000` | Target text chunk size in characters. |
+| `CHUNK_OVERLAP` | `120` | Sentence-boundary overlap between text chunks. |
+| `TESSERACT_CMD` | system default | Optional path to the Tesseract executable, useful on Windows. |
+| `AUTOVIX_API_SECRET` | development fallback | Optional API token-signing secret; if set, it must be at least 32 bytes. |
+
+## Running the application
+
+On macOS/Linux, from the repository root:
+
+```bash
+./run.sh
+```
+
+The script starts FastAPI with reload enabled at `http://127.0.0.1:8000` and Vite at `http://127.0.0.1:5173`. Open [http://localhost:5173](http://localhost:5173). Use `Ctrl+C` in the terminal to stop the services.
+
+To start the services separately (including on Windows), activate the virtual environment, then run:
+
+```bash
+# Terminal 1, from the repository root
+uvicorn backend.api:app --host 127.0.0.1 --port 8000 --reload
+
+# Terminal 2, from the repository root
+npm --prefix frontend run dev -- --host 127.0.0.1 --port 5173
+```
+
+The API includes interactive documentation at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs). Health is available at `/api/health`; it reports HTTP 503 when the configured local Ollama model is unavailable.
+
+### First local session
+
+When the local account database has no users, `GET /api/auth/session` creates a development admin account (`admin` / `admin123456789`) and a `Main Workspace` project. The frontend requests this local session automatically when it has no saved token. These bootstrap credentials are for local development only; do not expose the development server to an untrusted network.
+
+## Typical workflow
+
+1. Open **Documents & Specifications** and upload a PDF. Uploading another PDF with the same filename in the same project creates the next version.
+2. Ask questions in **Ask AI**. Retrieval uses the latest indexed document version in the active project. Review the answer, confidence indicator, citations, and retrieved passages together; low-confidence answers may be incomplete.
+3. Run **Architecture Entity Recognition** for a selected document version. Inspect evidence, filter by name/type/page, or use **Rebuild results** to rerun recognition from the stored page and table text.
+4. Use **Review Queue** to review extracted entities or submit an AI answer for review. Review status changes after sign-off invalidate that version's prior sign-off.
+5. Use **Compare Versions** to inspect a stored-version comparison or analyze two PDFs directly. Direct uploads are for analysis only.
+6. Export approved findings, traceability, or a stored-version comparison as JSON or CSV after the relevant document versions have current sign-offs.
+
+## Re-index an existing document
+
+Section-aware chunking is applied to new uploads. To rebuild the vector chunks for an already processed document, run:
+
+```bash
+python -m ingestion.reindex_document \
+  --user-id USER_ID \
+  --project-id PROJECT_ID \
+  --document-id DOCUMENT_ID
+```
+
+The command checks project access and uses the saved extraction artifacts for that document. It replaces only that document's vectors in its project collection. Existing documents without section metadata remain searchable until re-indexed.
+
+## API overview
+
+Routes are available under `/api` (and also at the root path for backwards compatibility). Authenticated endpoints use a bearer token.
+
+| Area | Routes |
+|---|---|
+| Health and session | `GET /api/health`, `GET /api/auth/session`, `POST /api/auth/token`, `GET /api/auth/me` |
+| Projects | `GET /api/projects`, `POST /api/projects`, `GET /api/projects/{project_id}/stats` |
+| Documents | `POST` and `GET /api/projects/{project_id}/documents`; document detail, extracted text download, and delete routes are nested under a document ID. |
+| Ask AI | `POST /api/projects/{project_id}/query` |
+| Entity recognition | `/api/projects/{project_id}/documents/{document_id}/entities` including recognize, detail, and JSON/CSV export routes. |
+| Review and sign-off | `/api/projects/{project_id}/documents/{document_id}/reviews` including review actions, summary, and sign-off routes. |
+| Traceability and comparison | `/api/projects/{project_id}/traceability`, `/api/projects/{project_id}/compare`, and `/api/projects/{project_id}/compare/files` |
+| Governed exports and audit | `/api/projects/{project_id}/exports/{traceability|comparison}` and `/api/projects/{project_id}/audit` |
+
+See `/docs` for request schemas and complete route details.
+
+## Data layout
+
+| Path | Contents |
+|---|---|
+| `data/processed/access_control.sqlite3` | Local accounts, projects, memberships, and document records. |
+| `data/processed/audit_log.sqlite3` | Audit events. |
+| `data/processed/document_versions.json` | Per-project filename version history. |
+| `data/processed/projects/{project_id}/{document_id}/` | Extracted page text, chunks, tables, sections, traceability, and cached entity results for one document version. |
+| `data/chroma/` | Persistent Chroma vector collections. |
+
+These paths can contain uploaded documents and workspace records. Keep user data and generated local databases out of source-control commits and back them up before manual cleanup.
+
+## Current limitations
+
+- Input processing supports PDF files. OCR runs only on pages with very little extractable text and requires the Tesseract executable; OCR failure can leave a page without text and recognition warnings.
+- Table extraction is based on PDF table detection and may not preserve every complex layout. Section detection also depends on readable headings or PDF outlines.
+- Entity recognition is text-based and deterministic. It does not interpret diagram geometry, infer relationships, or replace an engineering review.
+- Ask AI is retrieval-based and can miss relevant passages. Its confidence score describes retrieval relevance, not the probability that an answer is correct. Check the cited source pages and passages.
+- Comparison is based on extracted traceability/entity records, not a visual or semantic diff of every sentence in two PDFs.
+- Ad-hoc PDF comparison has no stored document IDs, review state, or version sign-off; its results are not exportable. Export requires stored versions with current sign-offs.
+- The repository targets local development. Configure a strong `AUTOVIX_API_SECRET` and restrict CORS/network access before adapting it for a shared or production deployment.
+
+## Development and verification
+
+The backend tests are under `tests/`. The frontend is a Vite React app in `frontend/`. To build the frontend:
+
+```bash
+npm --prefix frontend run build
+```

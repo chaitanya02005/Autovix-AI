@@ -1,12 +1,5 @@
 import json
-import sys
 from pathlib import Path
-
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-for module_path in (PROJECT_ROOT / "rag", PROJECT_ROOT / "ingestion", PROJECT_ROOT / "extraction"):
-    if str(module_path) not in sys.path:
-        sys.path.insert(0, str(module_path))
 
 from database.access_control import (
     get_project_document,

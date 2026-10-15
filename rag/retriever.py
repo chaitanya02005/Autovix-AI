@@ -25,6 +25,16 @@ def expand_query(query: str) -> str:
     expanded = re.sub(r"\bgenai\b", "generative ai", query, flags=re.IGNORECASE)
     expanded = re.sub(r"\bllms\b", "large language models", expanded, flags=re.IGNORECASE)
     expanded = re.sub(r"\bllm\b", "large language model", expanded, flags=re.IGNORECASE)
+    if (
+        re.search(r"\b(?:software\s+)?components?\b|\bbuilding\s+blocks?\b", expanded, re.IGNORECASE)
+        and re.search(r"\b(?:AUTOSAR|Adaptive Platform|architecture)\b", expanded, re.IGNORECASE)
+        and "functional cluster" not in expanded.lower()
+    ):
+        expanded = (
+            f"{expanded} AUTOSAR Adaptive Platform high-level building block categories "
+            "Functional Clusters Runtime Communication Storage Security Safety "
+            "Configuration Diagnostics"
+        )
     return expanded
 
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ClipboardCheck, RefreshCw } from 'lucide-react';
 import { api } from '../api';
 import { useApp } from '../context/AppContext';

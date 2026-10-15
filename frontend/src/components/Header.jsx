@@ -1,4 +1,3 @@
-import React from 'react';
 import { useApp } from '../context/AppContext';
 import { Briefcase, ChevronDown, Menu, CheckCircle2 } from 'lucide-react';
 

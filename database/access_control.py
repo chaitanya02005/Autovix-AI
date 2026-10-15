@@ -1,4 +1,3 @@
-import argparse
 import base64
 from contextlib import contextmanager
 import getpass

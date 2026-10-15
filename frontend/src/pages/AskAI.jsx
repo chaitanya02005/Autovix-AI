@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { api } from '../api';
 import {
@@ -9,7 +9,6 @@ import {
   ChevronRight,
   ArrowRight,
   Search,
-  Bot,
 } from 'lucide-react';
 
 export default function AskAI() {

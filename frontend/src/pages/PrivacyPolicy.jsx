@@ -1,5 +1,4 @@
-import React from 'react';
-import { Shield, Lock, FileText, Database, ArrowLeft } from 'lucide-react';
+import { Lock, FileText, Database, ArrowLeft } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function PrivacyPolicy() {

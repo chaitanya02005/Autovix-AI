@@ -9,7 +9,6 @@ from rag.llm_client import LLMUnavailableError, generate_answer, model_name
 from rag.grounding_guard import check_grounding
 from rag.rag_answer import build_context
 from rag.rag_pipeline import retrieve_context
-from rag.retriever import expand_query
 
 
 router = APIRouter(prefix="/projects/{project_id}/query", tags=["query"])
@@ -53,15 +52,12 @@ def query_project(
     else:
         system_prompt = (
             "Answer the question using only the supplied project document context. "
-            f"If it is not answered there, respond exactly: '{FALLBACK_ANSWER}'"
+            "Use terminology from the document even when it differs from the question. "
+            "If the context partially answers the question, provide the supported information "
+            "and state its limitation. Do not add examples or details that are not in the context. "
+            f"Respond exactly: '{FALLBACK_ANSWER}' only when the context has no relevant information."
         )
-        effective_question = expand_query(request.question)
-        question_text = (
-            request.question
-            if request.question.strip().lower() == effective_question.strip().lower()
-            else f"{request.question} ({effective_question})"
-        )
-        user_prompt = f"DOCUMENT CONTEXT:\n{context}\n\nQUESTION:\n{question_text}"
+        user_prompt = f"DOCUMENT CONTEXT:\n{context}\n\nQUESTION:\n{request.question}"
         try:
             answer = generate_answer(system_prompt, user_prompt) or FALLBACK_ANSWER
         except LLMUnavailableError as error:

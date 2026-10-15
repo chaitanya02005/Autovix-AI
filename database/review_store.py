@@ -4,7 +4,6 @@ import hashlib
 import json
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
 
 from database.access_control import (
     PROJECT_ROOT,
@@ -21,12 +20,6 @@ VALID_STATUSES = {"pending", "approved", "rejected", "corrected"}
 
 def _now():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def _review_file(project_id=None):
-    if project_id is None:
-        return REVIEW_FILE
-    return PROJECT_ROOT / "data" / "processed" / "projects" / str(project_id) / "review_log.json"
 
 
 def _migrate_legacy_reviews():

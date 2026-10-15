@@ -44,7 +44,6 @@ def seed_canonical_demo_project(user_id, project_id):
 
     from ingestion.pdf_parser import extract_text_from_pdf
     from extraction.traceability import extract_traceable_entities
-    from extraction.relationship_extractor import extract_relationships
     from database.versioning import get_document_version
 
     pages = extract_text_from_pdf(source_file) if source_file.exists() else []
@@ -59,7 +58,6 @@ def seed_canonical_demo_project(user_id, project_id):
     artifact_dir = PROJECT_ROOT / "data" / "processed" / "projects" / str(project_id) / document_id
     artifact_dir.mkdir(parents=True, exist_ok=True)
     traceability = extract_traceable_entities(pages)
-    relationships = extract_relationships(pages)
     scoped_pages = [
         {
             **page,
@@ -81,15 +79,6 @@ def seed_canonical_demo_project(user_id, project_id):
             "document_id": document_id,
         }
         for record in traceability
-    ]
-    scoped_relationships = [
-        {
-            **record,
-            "user_id": int(user_id),
-            "project_id": int(project_id),
-            "document_id": document_id,
-        }
-        for record in relationships
     ]
 
     sorted_records = sorted(
@@ -151,7 +140,6 @@ def seed_canonical_demo_project(user_id, project_id):
         ("chunks.json", payload),
         ("pages.json", scoped_pages),
         ("traceability.json", scoped_traceability),
-        ("relationships.json", scoped_relationships),
     ):
         with (artifact_dir / filename).open("w", encoding="utf-8") as file:
             json.dump(data, file, indent=2, ensure_ascii=False)

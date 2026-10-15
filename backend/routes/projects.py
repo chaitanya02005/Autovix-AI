@@ -2,8 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.dependencies import get_authorized_project, get_current_user
 from backend.schemas import ProjectCreate, ProjectResponse, ProjectStatsResponse
-from database.access_control import AuthorizationError, create_project, list_user_projects
-from database.audit_log import log_event
+from database.access_control import (
+    AuthorizationError,
+    create_project,
+    get_project_document,
+    list_project_documents,
+    list_user_projects,
+)
+from database.audit_log import log_event, read_logs
 
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -56,9 +62,6 @@ def get_project_stats(
     current_user: dict = Depends(get_current_user),
     project: dict = Depends(get_authorized_project),
 ):
-    from database.access_control import get_project_document, list_project_documents
-    from database.audit_log import read_logs
-
     docs = list_project_documents(current_user["id"], project["id"])
     docs_count = len(docs)
     active_doc = None

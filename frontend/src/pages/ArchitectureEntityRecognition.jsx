@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
 import { useApp } from '../context/AppContext';
-import { Download, FileSearch, Search, ExternalLink, Network, CheckCircle2 } from 'lucide-react';
+import { Download, FileSearch, Search } from 'lucide-react';
 
 const types = ['All types', 'Software Component', 'Port', 'Interface', 'Service', 'Data Element', 'Data Type', 'Operation', 'Event', 'Architecture Concept'];
 

@@ -19,7 +19,6 @@ from database.review_store import (
     current_signoff,
     ensure_item_review,
     list_document_reviews,
-    list_project_item_reviews,
     list_reviews,
     review_summary,
     save_review,

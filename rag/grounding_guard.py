@@ -23,7 +23,6 @@ STOP_WORDS = {
     "described",
     "describe",
     "architecture",
-    "using",
     "view",
     "views",
     "book",

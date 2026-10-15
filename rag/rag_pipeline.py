@@ -1,10 +1,7 @@
-import json
-from pathlib import Path
-
 from rag.retriever import expand_query, search_document_metadata, search_documents
 from rag.reranker import rerank_results
 from rag.confidence import calculate_confidence
-from database.access_control import list_project_documents, require_project_access
+from database.access_control import require_project_access
 
 
 METADATA_QUERY_TERMS = {
@@ -26,22 +23,6 @@ def metadata_query_type(query):
         if term in normalized:
             return query_type
     return None
-
-
-def build_prompt(query, context_chunks):
-    """Build a prompt string from the query and retrieved context chunks."""
-    context_text = "\n\n".join(
-        f"[Page {chunk['metadata'].get('page_number', '?')}]\n{chunk['document']}"
-        for chunk in context_chunks
-    )
-    return (
-        "You are an expert AUTOSAR architecture analyst. "
-        "Answer the question using only the context provided below. "
-        "If the answer is not in the context, say so.\n\n"
-        f"CONTEXT:\n{context_text}\n\n"
-        f"QUESTION: {query}\n\n"
-        "ANSWER:"
-    )
 
 
 def retrieve_context(

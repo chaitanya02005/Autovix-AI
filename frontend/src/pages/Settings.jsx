@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { api } from '../api';
 import {
@@ -6,7 +6,6 @@ import {
   Plus,
   RefreshCw,
   Server,
-  Cpu,
   Bot,
   CheckCircle2,
   XCircle,

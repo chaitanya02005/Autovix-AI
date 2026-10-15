@@ -4,7 +4,6 @@ Run: python -m ingestion.reindex_document --user-id USER --project-id PROJECT --
 """
 import argparse
 import json
-from pathlib import Path
 
 from database.access_control import AuthorizationError, list_project_documents, require_project_access
 from ingestion.chunker import build_section_tree, create_chunks, _section_path
