@@ -69,6 +69,27 @@ class ReviewStatusUpdate(BaseModel):
     review_status: Literal["approved", "needs_review"]
 
 
+class ReviewItemCreate(BaseModel):
+    item_type: Literal["answer"]
+    item_id: str | None = Field(default=None, min_length=1, max_length=200)
+    original_value: str = Field(min_length=1, max_length=30000)
+    item_metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ReviewActionRequest(BaseModel):
+    comment: str | None = Field(default=None, max_length=5000)
+
+
+class ReviewCorrectionRequest(BaseModel):
+    corrected_value: str = Field(min_length=1, max_length=30000)
+    comment: str = Field(min_length=1, max_length=5000)
+
+
+class BulkReviewRequest(BaseModel):
+    item_ids: list[str] = Field(min_length=1, max_length=200)
+    item_type: Literal["entity", "answer"] = "entity"
+
+
 class CompareRequest(BaseModel):
     baseline_document_id: str = Field(min_length=1, max_length=200)
     current_document_id: str = Field(min_length=1, max_length=200)

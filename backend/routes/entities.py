@@ -12,6 +12,7 @@ from backend.dependencies import get_authorized_project, get_current_user
 from backend.export_utils import export_csv_bytes, export_json_bytes
 from database.access_control import AuthorizationError, get_project_document
 from database.audit_log import log_event
+from database.review_store import ensure_item_review, review_status_map
 from extraction.entity_recognition import (
     load_recognized_entities,
     recognition_source_digest,
@@ -21,6 +22,21 @@ from extraction.entity_recognition import (
 
 
 router = APIRouter(prefix="/projects/{project_id}/documents/{document_id}/entities", tags=["entity recognition"])
+
+
+def _with_review_status(entities, project_id, document_id, user_id):
+    for entity in entities:
+        ensure_item_review(
+            project_id, document_id, "entity", entity["entity_id"], entity.get("name", ""),
+            {"entity": entity},
+        )
+    statuses = review_status_map(project_id, document_id, user_id=user_id)
+    for entity in entities:
+        review = statuses.get(("entity", str(entity["entity_id"])))
+        entity["review_status"] = review["status"] if review else "pending"
+        entity["reviewer"] = review.get("reviewer") if review else None
+        entity["review_updated_at"] = review.get("updated_at") if review else None
+    return entities
 
 
 def _get_document(user_id, project_id, document_id):
@@ -132,6 +148,7 @@ def list_document_entities(
         return {"status": "not_processed", "cached": False, "count": 0, "entities": [], "warnings": []}
     pages_path = Path(artifact_dir) / "pages.json"
     pages = json.loads(pages_path.read_text(encoding="utf-8")) if pages_path.exists() else []
+    entities = _with_review_status(entities, project["id"], document_id, current_user["id"])
     result = _result(entities, pages, cached=True)
     filtered = entities
     if entity_type:
@@ -193,6 +210,7 @@ def run_entity_recognition(
             document_id=document_id,
             details={"status": "completed" if entities else "no_entities_found", "count": len(entities)},
         )
+    entities = _with_review_status(entities, project["id"], document_id, current_user["id"])
     return _result(entities, pages, cached=cached)
 
 
@@ -205,7 +223,9 @@ def get_document_entity(
     project: dict = Depends(get_authorized_project),
 ):
     document = _get_document(current_user["id"], project["id"], document_id)
-    entities = _load_document_entities(document) or []
+    entities = _with_review_status(
+        _load_document_entities(document) or [], project["id"], document_id, current_user["id"]
+    )
     entity = next((item for item in entities if item.get("entity_id") == entity_id), None)
     if entity is None:
         raise HTTPException(status_code=404, detail={"code": "entity_not_found", "message": "Entity not found in this document."})

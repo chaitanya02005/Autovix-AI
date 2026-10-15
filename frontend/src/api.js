@@ -179,6 +179,36 @@ export const api = {
     return request(`/projects/${projectId}/documents/${documentId}/entities/${entityId}`);
   },
 
+  async getDocumentReviews(projectId, documentId, params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return request(`/projects/${projectId}/documents/${documentId}/reviews${query ? `?${query}` : ''}`);
+  },
+
+  async getDocumentReviewSummary(projectId, documentId) {
+    return request(`/projects/${projectId}/documents/${documentId}/reviews/summary`);
+  },
+
+  async submitAnswerForReview(projectId, documentId, payload) {
+    return request(`/projects/${projectId}/documents/${documentId}/reviews`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async reviewItem(projectId, documentId, itemType, itemId, action, payload = {}) {
+    return request(`/projects/${projectId}/documents/${documentId}/reviews/${itemType}/${itemId}/${action}`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async bulkApproveReviews(projectId, documentId, itemIds, itemType = 'entity') {
+    return request(`/projects/${projectId}/documents/${documentId}/reviews/bulk-approve`, {
+      method: 'POST',
+      body: JSON.stringify({ item_ids: itemIds, item_type: itemType }),
+    });
+  },
+
   async exportDocumentEntities(projectId, documentId, format = 'csv') {
     return request(`/projects/${projectId}/documents/${documentId}/entities/export/${format}`);
   },

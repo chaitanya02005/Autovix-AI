@@ -11,6 +11,7 @@ import AskAI from './pages/AskAI';
 import CompareVersions from './pages/CompareVersions';
 import Settings from './pages/Settings';
 import ArchitectureEntityRecognition from './pages/ArchitectureEntityRecognition';
+import ReviewQueue from './pages/ReviewQueue';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsAndConditions from './pages/TermsAndConditions';
 
@@ -35,6 +36,8 @@ export default function App() {
         return <Documents />;
       case 'Architecture Entity Recognition':
         return <ArchitectureEntityRecognition />;
+      case 'Review Queue':
+        return <ReviewQueue />;
       case 'Ask AI':
         return <AskAI />;
       case 'Compare Versions':

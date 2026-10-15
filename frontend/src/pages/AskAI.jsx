@@ -49,6 +49,7 @@ export default function AskAI() {
         sources: response.sources || [],
         primary_source: response.primary_source,
         context: response.context || [],
+        model: response.model || null,
       });
       setQuestion('');
     } catch (err) {
@@ -226,6 +227,30 @@ export default function AskAI() {
           {/* Answer Text */}
           <div className="bg-white border border-[#e2e8f0] border-l-4 border-l-[#0f172a] rounded-xl p-6 shadow-xs text-xs sm:text-sm text-[#0f172a] leading-relaxed whitespace-pre-wrap">
             {lastAnswer.answer}
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[11px] text-slate-500">Model: {lastAnswer.model || 'Local Ollama'}</span>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await api.submitAnswerForReview(currentProjectId, documentInfo.document_id, {
+                    item_type: 'answer',
+                    original_value: lastAnswer.answer,
+                    item_metadata: {
+                      question: lastAnswer.question,
+                      confidence: lastAnswer.retrieval_confidence,
+                      grounding: lastAnswer.grounding,
+                      sources: lastAnswer.sources,
+                    },
+                  });
+                  addToast('Answer sent to the Review Queue.', 'success');
+                } catch (error) {
+                  addToast(`Could not send answer for review: ${error.message}`, 'error');
+                }
+              }}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            >Send to review</button>
           </div>
 
           {/* Sources Chips */}

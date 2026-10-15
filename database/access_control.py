@@ -83,6 +83,27 @@ def init_db():
                 uploader_user_id INTEGER REFERENCES users(id),
                 artifact_dir TEXT
             );
+            CREATE TABLE IF NOT EXISTS reviews (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                document_id TEXT,
+                item_type TEXT NOT NULL CHECK (item_type IN ('entity', 'answer')),
+                item_id TEXT NOT NULL,
+                status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected', 'corrected')),
+                original_value TEXT NOT NULL,
+                corrected_value TEXT,
+                reviewer_user_id INTEGER REFERENCES users(id),
+                comment TEXT,
+                item_metadata TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(project_id, document_id, item_type, item_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_reviews_project_doc ON reviews(project_id, document_id);
+            CREATE TABLE IF NOT EXISTS review_migrations (
+                source_path TEXT PRIMARY KEY,
+                migrated_at TEXT NOT NULL
+            );
             CREATE INDEX IF NOT EXISTS idx_memberships_user ON project_memberships(user_id);
             CREATE INDEX IF NOT EXISTS idx_documents_project ON documents(project_id);
             """

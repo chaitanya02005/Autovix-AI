@@ -10,6 +10,7 @@ import {
   Network,
   Shield,
   FileCheck2,
+  ClipboardCheck,
   X,
 } from 'lucide-react';
 
@@ -20,6 +21,7 @@ export default function Sidebar({ mobileOpen, onCloseMobile }) {
     { id: 'Dashboard', label: 'Dashboard', icon: Home },
     { id: 'Documents', label: 'Documents', icon: FileText },
     { id: 'Architecture Entity Recognition', label: 'Architecture Entity Recognition', icon: Network },
+    { id: 'Review Queue', label: 'Review Queue', icon: ClipboardCheck },
     { id: 'Ask AI', label: 'Ask AI', icon: MessageSquare },
     { id: 'Compare Versions', label: 'Compare Versions', icon: ArrowLeftRight },
     { id: 'Settings', label: 'Settings', icon: Settings },

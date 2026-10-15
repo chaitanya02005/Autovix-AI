@@ -288,8 +288,13 @@ export default function ArchitectureEntityRecognition() {
                               {entity.entity_type} {entity.source_pages?.length ? `: p. ${entity.source_pages.join(', ')}` : ''}
                             </span>
                           </span>
-                          <span className="self-center rounded bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 border border-slate-200">
-                            {entity.review_status}
+                          <span className={`self-center rounded px-2 py-0.5 text-[10px] font-semibold border capitalize ${
+                            entity.review_status === 'approved' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                            entity.review_status === 'rejected' ? 'bg-rose-50 text-rose-800 border-rose-200' :
+                            entity.review_status === 'corrected' ? 'bg-blue-50 text-blue-800 border-blue-200' :
+                            'bg-amber-50 text-amber-800 border-amber-200'
+                          }`}>
+                            {entity.review_status || 'pending'}
                           </span>
                         </button>
                       ))

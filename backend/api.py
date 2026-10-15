@@ -110,6 +110,7 @@ _routers = [
     traceability.router,
     comparison.router,
     review.router,
+    review.document_router,
     audit.router,
     exports.router,
 ]

@@ -112,7 +112,7 @@ def recognize_entities(pages, *, project_id, document_id, document_version, trac
             "source_section": record["source_sections"][0] if record["source_sections"] else None,
             "extraction_method": ", ".join(record["extraction_methods"]),
             "extraction_status": "extracted",
-            "review_status": "Pending Review",
+            "review_status": "pending",
             "confidence": None,
         })
         entities.append(record)
