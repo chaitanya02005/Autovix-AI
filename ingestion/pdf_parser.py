@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+from collections import Counter
 from pathlib import Path
 
 import pymupdf
@@ -122,6 +123,16 @@ def extract_text_from_pdf(pdf_path):
                 "outline_headings": outline_by_page.get(page_number, []),
                 "visual_headings": _page_headings(page, body_font_size) if extraction_method == "text" else [],
             })
+        visual_title_counts = Counter(
+            heading["title"]
+            for page_data in pages
+            for heading in page_data.get("visual_headings", [])
+        )
+        for page_data in pages:
+            page_data["visual_headings"] = [
+                heading for heading in page_data.get("visual_headings", [])
+                if visual_title_counts[heading["title"]] <= 2
+            ]
     finally:
         document.close()
 

@@ -59,7 +59,7 @@ def _heading_candidates(page):
     used = set()
     for candidate in visual:
         title = re.sub(r"\s+", " ", candidate.get("title", "")).strip()
-        if not title:
+        if not title or "_" in title or re.match(r"^\[\d+\]", title):
             continue
         for index, line in enumerate(text_lines):
             if index not in used and re.sub(r"\s+", " ", line).strip() == title:
