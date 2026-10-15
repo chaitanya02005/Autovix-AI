@@ -4,7 +4,7 @@ from backend.dependencies import get_authorized_project, get_current_user
 from backend.schemas import QueryRequest, QueryResponse
 from database.audit_log import log_event
 from rag.citation import format_sources
-from rag.groq_client import generate_answer
+from rag.llm_client import LLMUnavailableError, generate_answer, model_name
 from rag.grounding_guard import check_grounding
 from rag.rag_answer import build_context
 from rag.rag_pipeline import retrieve_context
@@ -41,15 +41,14 @@ def query_project(
     if not results["documents"][0]:
         answer = FALLBACK_ANSWER
     else:
-        prompt = (
+        system_prompt = (
             "Answer the question using only the supplied project document context. "
-            f"If it is not answered there, respond exactly: '{FALLBACK_ANSWER}'\n\n"
-            f"DOCUMENT CONTEXT:\n{context}\n\nQUESTION:\n{request.question}"
+            f"If it is not answered there, respond exactly: '{FALLBACK_ANSWER}'"
         )
+        user_prompt = f"DOCUMENT CONTEXT:\n{context}\n\nQUESTION:\n{request.question}"
         try:
-            answer = generate_answer(prompt) or FALLBACK_ANSWER
-        except RuntimeError as error:
-            missing_api_key = "GROQ_API_KEY" in str(error)
+            answer = generate_answer(system_prompt, user_prompt) or FALLBACK_ANSWER
+        except LLMUnavailableError as error:
             query_metadata = results["metadatas"][0]
             log_event(
                 "DOCUMENT_QUERY",
@@ -61,20 +60,12 @@ def query_project(
                 document_id=(query_metadata[0].get("document_id") if query_metadata else None),
                 details={
                     "client": "api",
-                    "reason": "groq_api_key_missing" if missing_api_key else "generation_unavailable",
+                    "reason": "local_llm_unavailable",
                 },
             )
-            if missing_api_key:
-                raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail={
-                        "code": "groq_api_key_missing",
-                        "message": "Q&A is unavailable because GROQ_API_KEY is not configured.",
-                    },
-                ) from None
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail={"code": "generation_unavailable", "message": "Answer generation is unavailable."},
+                detail={"code": "local_llm_unavailable", "message": str(error)},
             ) from None
 
     grounding = check_grounding(answer, context)
@@ -101,7 +92,7 @@ def query_project(
         username=current_user["username"],
         project_id=project["id"],
         document_id=document_id,
-        details={"client": "api", "grounded": grounding["supported"]},
+        details={"client": "api", "grounded": grounding["supported"], "model": model_name()},
     )
     return QueryResponse(
         answer=answer,
@@ -112,4 +103,5 @@ def query_project(
         project_id=project["id"],
         document_id=document_id,
         context=context_chunks,
+        model=model_name() if results["documents"][0] else None,
     )

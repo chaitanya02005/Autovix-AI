@@ -385,8 +385,8 @@ export default function Settings() {
                 <Bot className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-xs sm:text-sm font-bold text-[#0f172a]">llama-3.1-70b-versatile</div>
-                <div className="text-xs text-slate-500">Provider: Groq Cloud</div>
+                <div className="text-xs sm:text-sm font-bold text-[#0f172a]">llama3.1:8b</div>
+                <div className="text-xs text-slate-500">Provider: Ollama (local)</div>
               </div>
             </div>
             <div>

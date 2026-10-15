@@ -1,6 +1,5 @@
 chromadb
 fastapi
-groq
 pymupdf
 pdfplumber
 pytesseract

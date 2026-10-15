@@ -85,7 +85,7 @@ export default function PrivacyPolicy() {
         <section className="space-y-2">
           <h2 className="text-base font-bold text-[#0f172a]">3. Third-Party Service Providers</h2>
           <p className="text-slate-600 text-xs">
-            Autovix interfaces with the Groq Cloud API for large language model inference when executing Ask AI queries. Only the relevant context passages and the user's specific question are transmitted to generate grounded technical answers. Document binaries are never stored by external AI providers for model training.
+            The Ask AI feature sends relevant context passages and the user's question to the locally configured Ollama service for inference. These prompts are processed by that local service and are not sent to a public model API.
           </p>
         </section>
 

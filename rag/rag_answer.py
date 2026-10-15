@@ -1,6 +1,6 @@
-from rag_pipeline import retrieve_context
-from groq_client import generate_answer
-from citation import format_sources
+from rag.rag_pipeline import retrieve_context
+from rag.llm_client import generate_answer
+from rag.citation import format_sources
 
 
 def build_context(results):
@@ -46,38 +46,16 @@ def answer_question(query, top_k=5, *, user_id, project_id):
     context = build_context(results)
 
     # Grounded generation prompt
-    prompt = f"""
-You are an engineering document analysis assistant.
-
-Answer the user's question ONLY using the
-provided AUTOSAR document context.
-
-Rules:
-
-- Use only information explicitly supported by the context.
-- Do not use outside knowledge.
-- Do not invent information.
-- Do not expand or interpret statements beyond what
-  the document says.
-- If the context supports only a short answer,
-  give only the short answer.
-- If the context does not contain enough information,
-  say:
-  "I could not find enough information in the document."
-- Keep the answer concise and technically accurate.
-- Do not create citations yourself.
-- The application will add citations separately.
-
-DOCUMENT CONTEXT:
-
-{context}
-
-USER QUESTION:
-
-{query}
-"""
-
-    answer = generate_answer(prompt)
+    system_prompt = (
+        "You are an engineering document analysis assistant. Answer only using the provided "
+        "AUTOSAR document context. Use only information explicitly supported by the context; "
+        "do not use outside knowledge, invent information, or interpret beyond the document. "
+        "If the context does not contain enough information, say: "
+        '"I could not find enough information in the document." Keep the answer concise and '
+        "technically accurate. Do not create citations; the application adds them separately."
+    )
+    user_prompt = f"DOCUMENT CONTEXT:\n\n{context}\n\nUSER QUESTION:\n\n{query}"
+    answer = generate_answer(system_prompt, user_prompt)
 
     sources = format_sources(results)
 

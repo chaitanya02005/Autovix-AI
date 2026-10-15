@@ -18,6 +18,7 @@ from backend.routes import (
     traceability,
 )
 from database.access_control import AuthorizationError
+from rag.llm_client import check_local_llm
 
 
 logger = logging.getLogger(__name__)
@@ -90,7 +91,13 @@ async def unexpected_error_handler(_request: Request, exception: Exception):
 @app.get("/health", tags=["health"], summary="Check API health")
 @app.get("/api/health", tags=["health"], summary="Check API health")
 def health():
-    return {"status": "ok", "service": "Autovix"}
+    llm = check_local_llm()
+    if not llm["ready"]:
+        return JSONResponse(
+            status_code=503,
+            content={"status": "degraded", "service": "Autovix", "llm": llm},
+        )
+    return {"status": "ok", "service": "Autovix", "llm": llm}
 
 
 # Include routes at root

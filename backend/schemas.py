@@ -55,6 +55,7 @@ class QueryResponse(BaseModel):
     project_id: int
     document_id: str | None
     context: list[dict[str, Any]] = Field(default_factory=list)
+    model: str | None = None
 
 
 class ReviewCreate(BaseModel):

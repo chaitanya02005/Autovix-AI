@@ -54,9 +54,8 @@ def _ensure_db() -> sqlite3.Connection:
 
 
 _SECRET_ASSIGNMENT = re.compile(
-    r"(?i)\b((?:groq[_-])?(?:password|token|secret|api[\s_-]?key))\s*[:=]\s*([^\s,;]+)"
+    r"(?i)\b((?:password|token|secret|api[\s_-]?key))\s*[:=]\s*([^\s,;]+)"
 )
-_GROQ_TOKEN = re.compile(r"\bsk-[A-Za-z0-9_-]{8,}\b")
 
 
 def _sanitize(value):
@@ -69,8 +68,7 @@ def _sanitize(value):
     if isinstance(value, (list, tuple)):
         return [_sanitize(item) for item in value]
     if isinstance(value, str):
-        value = _SECRET_ASSIGNMENT.sub(r"\1=[REDACTED]", value)
-        return _GROQ_TOKEN.sub("[REDACTED]", value)
+        return _SECRET_ASSIGNMENT.sub(r"\1=[REDACTED]", value)
     return value
 
 

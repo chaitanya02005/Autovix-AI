@@ -31,7 +31,7 @@ Autovix is an intelligent, multi-tenant workspace designed for analyzing and man
    └───────────┘               └───────────┘                       │
          │                                                         ▼
          ▼                                                   ┌───────────┐
-   ┌───────────┐                                             │ Groq LLM  │
+   ┌───────────┐                                             │ Ollama LLM │
    │ SQLite DB │                                             │ (Answer)  │
    └───────────┘                                             └───────────┘
 ```
@@ -96,10 +96,20 @@ Download the sample document using any of the following links:
    ```bash
    pip install -r requirements.txt
    ```
-4. Set your Groq API Key for the AI assistant:
+4. Install Ollama and download the default local model:
    ```bash
-   export GROQ_API_KEY="your_api_key_here"
+   # Install Ollama from https://ollama.com/download
+   ollama pull llama3.1:8b
    ```
+   Configure the local model in `.env` as needed:
+   ```env
+   LLM_PROVIDER=ollama
+   OLLAMA_BASE_URL=http://localhost:11434
+   OLLAMA_MODEL=llama3.1:8b
+   LLM_TIMEOUT_SECONDS=120
+   LLM_TEMPERATURE=0.1
+   ```
+   To use another model hosted by Ollama, pull it and change `OLLAMA_MODEL` (for example, to a Qwen or Mistral model).
 
 ## Usage
 1. Start the server and application:
