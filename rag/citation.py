@@ -15,6 +15,12 @@ def format_sources(results):
             "page": metadata["page_number"],
             "chunk_id": metadata["chunk_id"]
         }
+        section_number = metadata.get("section_number")
+        section_title = metadata.get("section_title")
+        if section_number or section_title:
+            source["section"] = ", ".join(
+                value for value in (section_number, section_title) if value
+            )
 
         sources.append(source)
 

@@ -292,6 +292,7 @@ export default function AskAI() {
                 <div className="p-5 border-t border-slate-100 bg-slate-50/50 space-y-3">
                   {lastAnswer.context.map((chunk, idx) => {
                     const pageNum = chunk.metadata?.page_number || 'N/A';
+                    const section = chunk.metadata?.section_number || chunk.metadata?.section_title;
                     const docText = chunk.document || '';
                     return (
                       <div
@@ -299,7 +300,7 @@ export default function AskAI() {
                         className="bg-white border border-slate-200 rounded-lg p-3 text-xs space-y-1 shadow-2xs"
                       >
                         <div className="font-bold text-slate-800">
-                          Source {idx + 1} : Page {pageNum}
+                          Source {idx + 1} : {section ? `Section ${section}, ` : ''}Page {pageNum}
                         </div>
                         <div className="font-mono text-[11px] text-slate-600 whitespace-pre-wrap leading-relaxed">
                           {docText.length > 600 ? `${docText.substring(0, 600)}...` : docText}

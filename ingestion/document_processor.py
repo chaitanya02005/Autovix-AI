@@ -6,7 +6,7 @@ import uuid
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 from ingestion.pdf_parser import extract_text_from_pdf
-from ingestion.chunker import create_chunks
+from ingestion.chunker import build_section_tree, create_chunks, _section_path
 from ingestion.table_extractor import create_table_chunks, extract_tables_from_pdf
 from extraction.traceability import extract_traceable_entities
 from rag.uploaded_document_db import build_uploaded_database
@@ -87,9 +87,23 @@ def process_uploaded_pdf(uploaded_file, *, user_id=None, project_id=None):
     if not pages or not any(page.get("text", "").strip() for page in pages):
         raise ValueError("The uploaded PDF is empty or contains no extractable text.")
 
+    sections = build_section_tree(pages)
     text_chunks = create_chunks(pages, source_file=filename)
     tables = extract_tables_from_pdf(pdf_path)
     table_chunks = create_table_chunks(tables, start_chunk_id=len(text_chunks))
+    for table, chunk in zip(tables, table_chunks):
+        page_number = table["page_number"]
+        section = next((item for item in reversed(sections) if item["start_page"] <= page_number), None)
+        path = _section_path(section, sections) if section else ""
+        chunk.update({
+            "page_start": page_number,
+            "page_end": page_number,
+            "section_number": section.get("section_number", "") if section else "",
+            "section_title": section.get("title", "") if section else "",
+            "section_path": path,
+        })
+        if path:
+            chunk["text"] = f"{path}\n\n{chunk['text']}"
     chunks = text_chunks + table_chunks
     traceability = extract_traceable_entities(pages)
     document_metadata = extract_document_metadata(pages)
@@ -109,6 +123,7 @@ def process_uploaded_pdf(uploaded_file, *, user_id=None, project_id=None):
     artifact_dir = processed_dir / "projects" / str(project["id"]) / version_info["document_id"]
     artifact_dir.mkdir(parents=True, exist_ok=True)
     output_path = artifact_dir / "chunks.json"
+    sections_path = artifact_dir / "sections.json"
     collection_name = project_collection_name(user_id, project["id"])
     scoped_chunks = [
         {
@@ -142,12 +157,16 @@ def process_uploaded_pdf(uploaded_file, *, user_id=None, project_id=None):
         "total_text_chunks": len(text_chunks),
         "total_table_chunks": len(table_chunks),
         "total_tables": len(tables),
+        "sections": sections,
         **document_metadata,
         "tables": scoped_tables,
         "chunks": scoped_chunks,
     }
     with open(output_path, "w", encoding="utf-8") as file:
         json.dump(data, file, indent=4, ensure_ascii=False)
+
+    with open(sections_path, "w", encoding="utf-8") as file:
+        json.dump(sections, file, indent=4, ensure_ascii=False)
 
     traceability_path = artifact_dir / "traceability.json"
     traceability = [
@@ -206,6 +225,8 @@ def process_uploaded_pdf(uploaded_file, *, user_id=None, project_id=None):
         "traceability_records": len(traceability),
         "traceability_path": str(traceability_path),
         "pages_path": str(pages_path),
+        "sections": sections,
+        "sections_path": str(sections_path),
         **document_metadata,
         "artifact_dir": str(artifact_dir),
     }

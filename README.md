@@ -124,3 +124,14 @@ Download the sample document using any of the following links:
 
 Recognition is deterministic and evidence-backed. It scans stored page text directly (rather than relying on the separate traceability index), and uses stored table text when available. It does not use an external AI provider and does not interpret architecture diagram objects. The supported names are terminology explicitly matched in extracted source text; the current application has no interactive Architecture Explorer screen or relationship extraction source module. Relationship records are shown only when present in a document's existing `relationships.json` artifact. Entity review is presented as pending; approval/correction actions are not yet implemented for entities. Pages with no extracted text are reported as warnings; OCR depends on Tesseract being installed and configured.
 
+# Section-aware ingestion and re-indexing
+
+PDF ingestion stores the detected section outline at `data/processed/projects/{project_id}/{document_id}/sections.json` and adds section path and page range metadata to each new vector. Set `CHUNK_SIZE` (default `1000`) and `CHUNK_OVERLAP` (default `120`) to tune text chunking; overlap is applied at sentence boundaries. Tables remain individual Markdown chunks.
+
+To re-chunk an existing processed document, run:
+
+```bash
+python -m ingestion.reindex_document --user-id USER_ID --project-id PROJECT_ID --document-id DOCUMENT_ID
+```
+
+The command verifies project access, reads that document's saved extraction artifacts, and replaces vectors filtered to that document ID inside its project collection. Existing documents without section metadata remain searchable until re-indexed.

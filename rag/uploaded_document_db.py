@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CHROMA_DIR = str(PROJECT_ROOT / "data" / "chroma")
 DEFAULT_COLLECTION = "uploaded_autosar_documents"
 
-def build_uploaded_database(json_path, *, user_id=None, project_id=None, collection_name=None):
+def build_uploaded_database(json_path, *, user_id=None, project_id=None, collection_name=None, replace_document=False):
     if user_id is None or project_id is None:
         raise AuthorizationError("Project-scoped indexing requires an authorized user and project.")
     authorized_collection = project_collection_name(user_id, project_id)
@@ -35,6 +35,8 @@ def build_uploaded_database(json_path, *, user_id=None, project_id=None, collect
 
     collection = client.get_or_create_collection(name=authorized_collection)
     if not chunks:
+        if replace_document:
+            collection.delete(where={"document_id": str(data["document_id"])})
         return authorized_collection
     embedding_model = EmbeddingModel()
     texts = [chunk["text"] for chunk in chunks]
@@ -48,6 +50,8 @@ def build_uploaded_database(json_path, *, user_id=None, project_id=None, collect
     for chunk in chunks:
         metadata = {
             "page_number": chunk["page_number"],
+            "page_start": chunk.get("page_start", chunk["page_number"]),
+            "page_end": chunk.get("page_end", chunk["page_number"]),
             "chunk_id": chunk["chunk_id"],
             "document": data["source_file"],
             "document_id": document_id,
@@ -59,8 +63,15 @@ def build_uploaded_database(json_path, *, user_id=None, project_id=None, collect
             "document_title": data.get("document_title"),
             "author": data.get("author"),
             "page_count": data.get("page_count", data.get("total_pages")),
+            "section_number": chunk.get("section_number", ""),
+            "section_title": chunk.get("section_title", ""),
+            "section_path": chunk.get("section_path", ""),
         }
         metadatas.append({key: value for key, value in metadata.items() if value is not None})
+
+    if replace_document:
+        # The filter is scoped to this document inside the authorized project collection.
+        collection.delete(where={"document_id": document_id})
 
     collection.upsert(
         ids=ids,
