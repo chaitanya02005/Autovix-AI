@@ -69,6 +69,18 @@ async function request(endpoint, options = {}) {
 }
 
 export const api = {
+  // Public service health (the API may return HTTP 503 when its local model is unavailable).
+  async getHealth() {
+    const response = await fetch(`${API_BASE}/health`);
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      // A non-JSON health response is represented as an unavailable service below.
+    }
+    return { ...data, apiReady: response.ok || response.status === 503 };
+  },
+
   // Authentication & Session
   async getSession() {
     const data = await request('/auth/session');

@@ -14,6 +14,8 @@ from database.access_control import AuthorizationError, require_login, require_p
 
 TOKEN_TTL_SECONDS = 86400  # 24 hours for development
 _TOKEN_SECRET = os.environ.get("AUTOVIX_API_SECRET")
+if not _TOKEN_SECRET and os.environ.get("AUTOVIX_ENV", "development").lower() == "production":
+    raise RuntimeError("AUTOVIX_API_SECRET must be configured when AUTOVIX_ENV=production.")
 if _TOKEN_SECRET:
     if len(_TOKEN_SECRET.encode("utf-8")) < 32:
         raise RuntimeError("AUTOVIX_API_SECRET must be at least 32 bytes.")

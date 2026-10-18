@@ -3,6 +3,24 @@ import { api, setAuthToken, getAuthToken } from '../api';
 
 const AppContext = createContext(null);
 
+const TAB_PATHS = {
+  Dashboard: '',
+  Documents: 'documents',
+  'Architecture Entity Recognition': 'architecture-entities',
+  'Review Queue': 'review-queue',
+  'Ask AI': 'ask-ai',
+  'Compare Versions': 'compare-versions',
+  Settings: 'settings',
+  'Privacy Policy': 'privacy-policy',
+  'Terms and Conditions': 'terms',
+};
+
+function tabFromLocation() {
+  if (typeof window === 'undefined') return 'Dashboard';
+  const path = window.location.hash.replace(/^#\/?/, '');
+  return Object.keys(TAB_PATHS).find((tab) => TAB_PATHS[tab] === path) || 'Dashboard';
+}
+
 export function AppProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setTokenState] = useState(getAuthToken());
@@ -10,7 +28,7 @@ export function AppProvider({ children }) {
   const [currentProjectId, setCurrentProjectId] = useState(null);
   const [currentProject, setCurrentProject] = useState(null);
   const [currentRole, setCurrentRole] = useState('viewer');
-  const [selectedTab, setSelectedTab] = useState('Dashboard');
+  const [selectedTab, setSelectedTabState] = useState(tabFromLocation);
   const [stats, setStats] = useState({
     documents_count: 0,
     entities_count: 0,
@@ -24,6 +42,27 @@ export function AppProvider({ children }) {
   const [comparisonResult, setComparisonResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toasts, setToasts] = useState([]);
+
+  const setSelectedTab = useCallback((tab) => {
+    if (!Object.prototype.hasOwnProperty.call(TAB_PATHS, tab)) return;
+    setSelectedTabState(tab);
+    if (typeof window !== 'undefined') {
+      const nextUrl = TAB_PATHS[tab] ? `/#${TAB_PATHS[tab]}` : `${window.location.pathname}${window.location.search}`;
+      if (`${window.location.pathname}${window.location.hash}` !== nextUrl) {
+        window.history.pushState({ autovixTab: tab }, '', nextUrl);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const syncTabFromLocation = () => setSelectedTabState(tabFromLocation());
+    window.addEventListener('popstate', syncTabFromLocation);
+    window.addEventListener('hashchange', syncTabFromLocation);
+    return () => {
+      window.removeEventListener('popstate', syncTabFromLocation);
+      window.removeEventListener('hashchange', syncTabFromLocation);
+    };
+  }, []);
 
   // Toast notification helper
   const addToast = useCallback((message, type = 'info') => {

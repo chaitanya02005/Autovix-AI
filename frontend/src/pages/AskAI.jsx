@@ -140,6 +140,7 @@ export default function AskAI() {
         <div className="relative">
           <input
             type="text"
+            aria-label="Question about project documents"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             disabled={asking}

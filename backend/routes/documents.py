@@ -14,6 +14,7 @@ from database.access_control import (
 )
 from database.audit_log import log_event
 from ingestion.document_processor import process_uploaded_pdf
+from rag.uploaded_document_db import delete_uploaded_document
 
 
 router = APIRouter(prefix="/projects/{project_id}/documents", tags=["documents"])
@@ -220,6 +221,7 @@ def delete_project_document(
     try:
         doc = get_project_document(current_user["id"], project["id"], document_id)
         fname = doc.get("filename", "Unknown")
+        delete_uploaded_document(current_user["id"], project["id"], document_id)
         db_delete_document(current_user["id"], project["id"], document_id)
         log_event(
             "DOCUMENT_DELETED",

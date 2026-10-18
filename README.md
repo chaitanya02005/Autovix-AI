@@ -86,7 +86,7 @@ The defaults are listed in [`.env.example`](.env.example). Copy it if you want t
 cp .env.example .env
 ```
 
-`run.sh` does not automatically read `.env`. Load it into the shell before starting the app:
+`run.sh` loads `.env` when the file exists. For separate backend and frontend commands, load it into the shell first:
 
 ```bash
 set -a
@@ -104,7 +104,10 @@ set +a
 | `CHUNK_SIZE` | `1000` | Target text chunk size in characters. |
 | `CHUNK_OVERLAP` | `120` | Sentence-boundary overlap between text chunks. |
 | `TESSERACT_CMD` | system default | Optional path to the Tesseract executable, useful on Windows. |
-| `AUTOVIX_API_SECRET` | development fallback | Optional API token-signing secret; if set, it must be at least 32 bytes. |
+| `AUTOVIX_ENV` | `development` | Set to `production` to require a configured token secret and one-time admin bootstrap password. |
+| `AUTOVIX_API_SECRET` | development fallback | Token-signing secret. Must be at least 32 bytes; required when `AUTOVIX_ENV=production`. |
+| `AUTOVIX_BOOTSTRAP_ADMIN_PASSWORD` | unset | One-time initial admin password in production. Use at least 12 characters and remove it from the environment after account initialization. |
+| `AUTOVIX_CORS_ORIGINS` | localhost Vite origins | Comma-separated browser origins allowed to call the API. Add the deployed frontend origin when the API is hosted separately. |
 
 ## Running the application
 
@@ -114,7 +117,7 @@ On macOS/Linux, from the repository root:
 ./run.sh
 ```
 
-The script starts FastAPI with reload enabled at `http://127.0.0.1:8000` and Vite at `http://127.0.0.1:5173`. Open [http://localhost:5173](http://localhost:5173). Use `Ctrl+C` in the terminal to stop the services.
+The script starts FastAPI with reload enabled at `http://127.0.0.1:8000` and Vite at `http://127.0.0.1:5173`. Open [http://localhost:5173](http://localhost:5173). Use `Ctrl+C` in the terminal to stop the services. This local development setup is not a production deployment configuration.
 
 To start the services separately (including on Windows), activate the virtual environment, then run:
 
@@ -131,6 +134,8 @@ The API includes interactive documentation at [http://127.0.0.1:8000/docs](http:
 ### First local session
 
 When the local account database has no users, `GET /api/auth/session` creates a development admin account (`admin` / `admin123456789`) and a `Main Workspace` project. The frontend requests this local session automatically when it has no saved token. These bootstrap credentials are for local development only; do not expose the development server to an untrusted network.
+
+For a production-mode first run, set `AUTOVIX_ENV=production`, configure a unique `AUTOVIX_API_SECRET` of at least 32 bytes, set `AUTOVIX_BOOTSTRAP_ADMIN_PASSWORD` to a one-time password of at least 12 characters, and configure the exact browser origins in `AUTOVIX_CORS_ORIGINS`. The first session request creates the initial `admin` account. Remove the bootstrap password from the environment after that account is created. Production deployment, HTTPS termination, domain setup, backups, and legal review must be configured by the operator; this repository does not define a hosting platform.
 
 ## Typical workflow
 

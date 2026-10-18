@@ -247,10 +247,10 @@ export default function CompareVersions() {
             </div>
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-3">
               <span className="text-[11px] text-slate-500">Ad-hoc file comparisons are for analysis. Export requires stored, signed-off document versions.</span>
-              <select value={baselineDocumentId} onChange={(event) => setBaselineDocumentId(event.target.value)} className="h-8 rounded-md border border-slate-200 px-2 text-xs">
+              <select aria-label="Select baseline document for export" value={baselineDocumentId} onChange={(event) => setBaselineDocumentId(event.target.value)} className="h-8 rounded-md border border-slate-200 px-2 text-xs">
                 <option value="">Baseline document</option>{documents.map((document) => <option key={document.document_id} value={document.document_id}>{document.filename} · v{document.version}</option>)}
               </select>
-              <select value={currentDocumentId} onChange={(event) => setCurrentDocumentId(event.target.value)} className="h-8 rounded-md border border-slate-200 px-2 text-xs">
+              <select aria-label="Select current document for export" value={currentDocumentId} onChange={(event) => setCurrentDocumentId(event.target.value)} className="h-8 rounded-md border border-slate-200 px-2 text-xs">
                 <option value="">Current document</option>{documents.map((document) => <option key={document.document_id} value={document.document_id}>{document.filename} · v{document.version}</option>)}
               </select>
               <button

@@ -1,110 +1,66 @@
-import { FileCheck, AlertCircle, Scale, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+
+const sections = [
+  {
+    title: 'About this software',
+    content: <p>Autovix is a workspace for processing automotive architecture documents. Its implemented features include PDF text and table extraction, architecture entity recognition, traceability views, document-version comparison, document search and question answering, reviews, sign-off, and exports.</p>,
+  },
+  {
+    title: 'Accounts and workspace access',
+    content: <p>Access to project data is authenticated and project actions are controlled by roles. Users are responsible for protecting their sign-in details and for using workspaces they are authorized to access. The server operator is responsible for configuring accounts and project membership for the installation.</p>,
+  },
+  {
+    title: 'Documents and permitted use',
+    content: <p>Only upload or process material you are authorized to use with the installation and its configured services. Do not use the workspace to interfere with the service, bypass access controls, or submit files you know are malicious. The operator should define any additional rules that apply to the organization using this installation.</p>,
+  },
+  {
+    title: 'Your content and generated results',
+    content: <p>This software does not determine ownership of uploaded documents, extracted records, questions, or generated answers. Users should confirm they have appropriate rights and permissions before uploading or exporting material. The application processes content to provide the requested workspace features.</p>,
+  },
+  {
+    title: 'Engineering review',
+    content: <p>Extracted entities, comparisons, search results, and model-generated answers can be incomplete or incorrect. Review source documents and evidence before using results in engineering, safety, cybersecurity, compliance, or release decisions. Autovix is not a certified safety-analysis or compliance tool.</p>,
+  },
+  {
+    title: 'Availability and configured services',
+    content: <p>Features depend on the API server, storage, document-processing dependencies, and model services configured by the operator. Availability, data retention, backups, support, and any third-party service terms are specific to that deployment and are not set by this repository.</p>,
+  },
+  {
+    title: 'Changes and termination',
+    content: <p>The operator manages access to each installation and its workspaces. This repository does not define a general account cancellation, subscription, refund, or service-level process. The operator should publish the process that applies to its deployment.</p>,
+  },
+  {
+    title: 'Operator details and legal review',
+    content: <p>No legal business identity, governing jurisdiction, effective date, or verified terms contact is configured in this repository. The operator must supply those details and obtain appropriate legal review before treating these draft terms as binding conditions of use.</p>,
+  },
+];
 
 export default function TermsAndConditions() {
   const { setSelectedTab } = useApp();
 
   return (
-    <div className="space-y-8 fade-in max-w-4xl">
-      {/* Back button & Header */}
-      <div>
-        <button
-          onClick={() => setSelectedTab('Dashboard')}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 mb-4 transition-colors"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to Dashboard</span>
-        </button>
-        <h1 className="text-2xl font-bold tracking-tight text-[#0f172a]">Terms and Conditions</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Effective date: October 14, 2026. Please review these terms governing the use of the Autovix platform.
-        </p>
+    <article className="legal-page fade-in">
+      <button
+        type="button"
+        onClick={() => setSelectedTab('Dashboard')}
+        className="mb-5 inline-flex items-center gap-2 rounded-md text-sm font-semibold text-slate-600 hover:text-slate-950"
+      >
+        <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+        <span>Back to workspace</span>
+      </button>
+      <header className="mb-8 border-b border-slate-200 pb-6">
+        <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-blue-700">Autovix workspace</p>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-950">Terms and Conditions</h1>
+        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600">This is a product-specific draft based on the features in this repository. It is not an active contract until the operator completes the deployment details and obtains appropriate review.</p>
+      </header>
+      <div className="legal-content">
+        {sections.map((section, index) => <section key={section.title} aria-labelledby={`terms-section-${index + 1}`}>
+          <h2 id={`terms-section-${index + 1}`}>{index + 1}. {section.title}</h2>
+          {section.content}
+        </section>)}
       </div>
-
-      {/* Highlights Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white border border-[#e2e8f0] rounded-xl p-4 shadow-sm space-y-2">
-          <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
-            <FileCheck className="w-4 h-4" />
-          </div>
-          <div className="text-xs font-bold text-[#0f172a]">Your Content & IP</div>
-          <div className="text-xs text-slate-500 leading-relaxed">
-            You retain all intellectual property rights to your uploaded architecture specifications and designs.
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#e2e8f0] rounded-xl p-4 shadow-sm space-y-2">
-          <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
-            <AlertCircle className="w-4 h-4" />
-          </div>
-          <div className="text-xs font-bold text-[#0f172a]">Engineering Advisory</div>
-          <div className="text-xs text-slate-500 leading-relaxed">
-            AI extractions are advisory and do not substitute for formal ISO 26262 functional safety sign-offs.
-          </div>
-        </div>
-
-        <div className="bg-white border border-[#e2e8f0] rounded-xl p-4 shadow-sm space-y-2">
-          <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
-            <Scale className="w-4 h-4" />
-          </div>
-          <div className="text-xs font-bold text-[#0f172a]">Workspace Access</div>
-          <div className="text-xs text-slate-500 leading-relaxed">
-            Access credentials and workspace configurations must be maintained securely by authorized team members.
-          </div>
-        </div>
-      </div>
-
-      {/* Terms Body */}
-      <div className="bg-white border border-[#e2e8f0] rounded-xl p-6 sm:p-8 shadow-sm space-y-6 text-sm text-[#0f172a] leading-relaxed">
-        <section className="space-y-2">
-          <h2 className="text-base font-bold text-[#0f172a]">1. Acceptance of Terms</h2>
-          <p className="text-slate-600 text-xs">
-            By accessing or using the Autovix platform, you agree to comply with and be bound by these Terms and Conditions. If you do not agree with any portion of these terms, you must not use the software.
-          </p>
-        </section>
-
-        <section className="space-y-2">
-          <h2 className="text-base font-bold text-[#0f172a]">2. Scope of Service</h2>
-          <p className="text-slate-600 text-xs">
-            Autovix provides automated document ingestion, architectural entity recognition, RAG-grounded natural language question answering, and version comparison for automotive software architecture documentation, including AUTOSAR Classic and Adaptive platform specifications.
-          </p>
-        </section>
-
-        <section className="space-y-2">
-          <h2 className="text-base font-bold text-[#0f172a]">3. Intellectual Property and Document Ownership</h2>
-          <p className="text-slate-600 text-xs">
-            Users retain sole and exclusive ownership of all proprietary architecture documents, system models, diagrams, and design specifications uploaded to Autovix. Autovix does not claim any ownership rights over user documents or the resulting architectural extracts.
-          </p>
-        </section>
-
-        <section className="space-y-2">
-          <h2 className="text-base font-bold text-[#0f172a]">4. Engineering and Safety Disclaimer</h2>
-          <p className="text-slate-600 text-xs">
-            Autovix utilizes automated parsing, OCR algorithms, and machine learning models to assist engineers. While the platform strives for high extraction precision and citation grounding, outputs must be validated by qualified automotive systems engineers before being relied upon in safety-critical systems. Autovix is not a certified tool for ISO 26262 functional safety qualification, ISO 21434 cybersecurity certification, or formal ASPICE audits.
-          </p>
-        </section>
-
-        <section className="space-y-2">
-          <h2 className="text-base font-bold text-[#0f172a]">5. Permitted and Prohibited Use</h2>
-          <p className="text-slate-600 text-xs">
-            You agree to use Autovix solely for legitimate software architecture design, analysis, and engineering purposes. You agree not to upload malicious binaries, attempt to disrupt platform services, or circumvent workspace authorization boundaries.
-          </p>
-        </section>
-
-        <section className="space-y-2">
-          <h2 className="text-base font-bold text-[#0f172a]">6. Limitation of Liability</h2>
-          <p className="text-slate-600 text-xs">
-            To the maximum extent permitted by applicable law, Autovix and its contributors shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from the use or inability to use the platform or errors in extracted architectural data.
-          </p>
-        </section>
-
-        <section className="space-y-2">
-          <h2 className="text-base font-bold text-[#0f172a]">7. Contact and Support</h2>
-          <p className="text-slate-600 text-xs">
-            Questions concerning these Terms and Conditions should be directed to <code className="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded text-[11px]">support@autovix.example.com</code>.
-          </p>
-        </section>
-      </div>
-    </div>
+      <p className="mt-8 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-950">The operator should have the final terms reviewed for the relevant organization and jurisdiction.</p>
+    </article>
   );
 }

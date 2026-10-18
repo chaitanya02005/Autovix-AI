@@ -122,7 +122,7 @@ export default function ReviewQueue() {
           <p className="mt-1 text-sm text-slate-500">Review extracted entities and grounded answers for this document.</p>
         </div>
         <div className="flex items-center gap-2">
-          <select value={documentId} onChange={(event) => setDocumentId(event.target.value)} className="h-9 max-w-64 rounded-lg border border-slate-200 bg-white px-3 text-xs">
+          <select aria-label="Select document version to review" value={documentId} onChange={(event) => setDocumentId(event.target.value)} className="h-9 max-w-64 rounded-lg border border-slate-200 bg-white px-3 text-xs">
             {documents.map((document) => <option key={document.document_id} value={document.document_id}>{document.filename} · v{document.version}</option>)}
           </select>
           <button onClick={loadReviews} disabled={loading || !documentId} className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 disabled:opacity-50">
@@ -146,11 +146,11 @@ export default function ReviewQueue() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-3">
-        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, answer or excerpt" className="h-9 min-w-48 flex-1 rounded-lg border border-slate-200 px-3 text-xs" />
-        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-9 rounded-lg border border-slate-200 px-3 text-xs">
+        <input aria-label="Search review items" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, answer or excerpt" className="h-9 min-w-48 flex-1 rounded-lg border border-slate-200 px-3 text-xs" />
+        <select aria-label="Filter review items by status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-9 rounded-lg border border-slate-200 px-3 text-xs">
           <option value="all">All statuses</option>{statuses.map((status) => <option key={status} value={status}>{status}</option>)}
         </select>
-        <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="h-9 rounded-lg border border-slate-200 px-3 text-xs">
+        <select aria-label="Filter review items by type" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="h-9 rounded-lg border border-slate-200 px-3 text-xs">
           <option value="all">All entity types</option>{entityTypes.map((type) => <option key={type} value={type}>{type}</option>)}
         </select>
         {canReview && <button onClick={handleBulkApprove} disabled={!selectedIds.length || loading} className="h-9 rounded-lg bg-[#0f172a] px-3 text-xs font-semibold text-white disabled:opacity-40">Approve selected ({selectedIds.length})</button>}
@@ -191,17 +191,17 @@ export default function ReviewQueue() {
                     </div>
                   </td>
                   <td className="px-3 py-3 text-slate-600">{entity.entity_type || 'AI answer'}</td>
-                  <td className="max-w-sm px-3 py-3 text-slate-600"><div>{pages.length ? `Page ${pages.join(', ')}` : '—'}</div><div className="mt-1 line-clamp-3 text-[11px] text-slate-500">{excerpt}</div></td>
+                  <td className="max-w-sm px-3 py-3 text-slate-600"><div>{pages.length ? `Page ${pages.join(', ')}` : 'Not available'}</div><div className="mt-1 line-clamp-3 text-[11px] text-slate-500">{excerpt}</div></td>
                   <td className="px-3 py-3"><span className={`rounded-md border px-2 py-1 text-[10px] font-semibold capitalize ${statusStyle(item.status)}`}>{item.status}</span></td>
-                  <td className="px-3 py-3 text-slate-600"><div>{item.reviewer || '—'}</div><div className="mt-1 text-[10px] text-slate-400">{item.updated_at}</div></td>
+                  <td className="px-3 py-3 text-slate-600"><div>{item.reviewer || 'Not reviewed'}</div><div className="mt-1 text-[10px] text-slate-400">{item.updated_at}</div></td>
                   <td className="px-3 py-3">
                     {!canReview ? <span className="text-[11px] text-slate-400">Read only</span> : <div className="flex flex-wrap gap-1.5">
                       <button onClick={() => handleAction(item, 'approve')} className="rounded border border-emerald-200 px-2 py-1 text-[10px] font-semibold text-emerald-800 hover:bg-emerald-50">Approve</button>
                       <button onClick={() => { setActionRow({ id: item.item_id, action: 'reject' }); setComment(''); }} className="rounded border border-rose-200 px-2 py-1 text-[10px] font-semibold text-rose-800 hover:bg-rose-50">Reject</button>
                       <button onClick={() => { setActionRow({ id: item.item_id, action: 'correct' }); setComment(''); setCorrectedValue(item.corrected_value || item.original_value); }} className="rounded border border-blue-200 px-2 py-1 text-[10px] font-semibold text-blue-800 hover:bg-blue-50">Correct</button>
                       {actionRow?.id === item.item_id && <div className="mt-2 w-full space-y-1.5">
-                        {actionRow.action === 'correct' && <textarea value={correctedValue} onChange={(event) => setCorrectedValue(event.target.value)} placeholder="Corrected value" className="w-full rounded border border-slate-200 p-2 text-[11px]" rows={2} />}
-                        <textarea value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Comment required" className="w-full rounded border border-slate-200 p-2 text-[11px]" rows={2} />
+                        {actionRow.action === 'correct' && <textarea aria-label="Corrected value" value={correctedValue} onChange={(event) => setCorrectedValue(event.target.value)} placeholder="Corrected value" className="w-full rounded border border-slate-200 p-2 text-[11px]" rows={2} />}
+                        <textarea aria-label="Review comment" value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Comment required" className="w-full rounded border border-slate-200 p-2 text-[11px]" rows={2} />
                         <button disabled={!comment.trim() || (actionRow.action === 'correct' && !correctedValue.trim())} onClick={() => handleAction(item, actionRow.action)} className="rounded bg-slate-900 px-2 py-1 text-[10px] font-semibold text-white disabled:opacity-40">Submit {actionRow.action}</button>
                       </div>}
                     </div>}

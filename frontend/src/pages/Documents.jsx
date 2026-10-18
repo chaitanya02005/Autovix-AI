@@ -311,6 +311,7 @@ export default function Documents() {
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
             <input
               type="text"
+              aria-label="Filter documents by filename"
               value={searchQuery}
               onChange={handleSearchChange}
               placeholder="Filter by filename..."

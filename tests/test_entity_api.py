@@ -7,6 +7,8 @@ from backend.api import app
 from backend.dependencies import create_access_token, decode_access_token
 from database import access_control
 from backend.routes import entities as entity_routes
+from backend.routes import documents as document_routes
+from backend.routes import auth as auth_routes
 from backend.routes import query as query_routes
 from rag.embeddings import EmbeddingModelUnavailableError
 
@@ -36,6 +38,49 @@ def test_entity_recognition_endpoint_requires_authentication(authorized_document
     with TestClient(app) as client:
         response = client.post(f"/api/projects/{project_id}/documents/doc-v1/entities/recognize")
     assert response.status_code == 401
+
+
+def test_document_delete_removes_project_vectors_and_stored_record(authorized_document, monkeypatch):
+    token, project_id = authorized_document
+    calls = []
+    monkeypatch.setattr(document_routes, "delete_uploaded_document", lambda user_id, project_id, document_id: calls.append((user_id, project_id, document_id)))
+    headers = {"Authorization": f"Bearer {token}"}
+    with TestClient(app) as client:
+        response = client.delete(f"/api/projects/{project_id}/documents/doc-v1", headers=headers)
+        remaining = client.get(f"/api/projects/{project_id}/documents", headers=headers)
+
+    assert response.status_code == 200
+    assert calls and calls[0][1:] == (project_id, "doc-v1")
+    assert remaining.json() == []
+
+
+def test_cors_allows_only_configured_local_frontend_without_cookie_credentials():
+    with TestClient(app) as client:
+        response = client.options(
+            "/api/auth/session",
+            headers={
+                "Origin": "http://localhost:5173",
+                "Access-Control-Request-Method": "GET",
+                "Access-Control-Request-Headers": "authorization",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert "access-control-allow-credentials" not in response.headers
+
+
+def test_production_session_requires_explicit_initial_admin_password(monkeypatch, tmp_path):
+    monkeypatch.setattr(access_control, "DATABASE_PATH", tmp_path / "production.sqlite3")
+    monkeypatch.setenv("AUTOVIX_ENV", "production")
+    monkeypatch.delenv("AUTOVIX_BOOTSTRAP_ADMIN_PASSWORD", raising=False)
+
+    with TestClient(app) as client:
+        response = client.get("/api/auth/session")
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "bootstrap_not_configured"
+    assert "AUTOVIX_BOOTSTRAP_ADMIN_PASSWORD" in response.json()["error"]["message"]
 
 
 def test_query_fails_fast_with_clear_error_when_local_embeddings_are_missing(authorized_document, monkeypatch):

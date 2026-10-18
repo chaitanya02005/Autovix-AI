@@ -83,3 +83,11 @@ def build_uploaded_database(json_path, *, user_id=None, project_id=None, collect
     return authorized_collection
 
 
+def delete_uploaded_document(user_id, project_id, document_id):
+    """Remove one document's vectors from its authorized project collection."""
+    collection_name = project_collection_name(user_id, project_id)
+    client = chromadb.PersistentClient(path=CHROMA_DIR)
+    collection = client.get_or_create_collection(name=collection_name)
+    collection.delete(where={"document_id": str(document_id)})
+
+

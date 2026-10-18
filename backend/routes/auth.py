@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.dependencies import TOKEN_TTL_SECONDS, create_access_token, get_current_user
@@ -67,7 +69,19 @@ def get_session():
     conn.close()
 
     if not user_row:
-        res = bootstrap_admin("admin", "admin123456789", "Main Workspace")
+        if os.environ.get("AUTOVIX_ENV", "development").lower() == "production":
+            bootstrap_password = os.environ.get("AUTOVIX_BOOTSTRAP_ADMIN_PASSWORD", "")
+            if len(bootstrap_password) < 12:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail={
+                        "code": "bootstrap_not_configured",
+                        "message": "Set a one-time AUTOVIX_BOOTSTRAP_ADMIN_PASSWORD with at least 12 characters before initializing the first production account.",
+                    },
+                )
+            res = bootstrap_admin("admin", bootstrap_password, "Main Workspace")
+        else:
+            res = bootstrap_admin("admin", "admin123456789", "Main Workspace")
         admin_user_id = res["user_id"]
     else:
         admin_user_id = user_row[0]

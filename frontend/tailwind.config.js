@@ -8,10 +8,10 @@ export default {
     extend: {
       colors: {
         brand: {
-          sidebar: "#0b1120",
+          sidebar: "#101c2d",
           sidebarBorder: "#1e293b",
           sidebarActive: "#1e293b",
-          bg: "#F8FAFC",
+          bg: "#f5f7fa",
           surface: "#FFFFFF",
           ink: "#0f172a",
           inkLight: "#334155",
@@ -23,8 +23,16 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-        mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+      },
+      fontSize: {
+        xs: ['0.8125rem', { lineHeight: '1.25rem' }],
+        sm: ['0.9375rem', { lineHeight: '1.4rem' }],
+        base: ['1rem', { lineHeight: '1.55rem' }],
+        lg: ['1.125rem', { lineHeight: '1.65rem' }],
+        xl: ['1.25rem', { lineHeight: '1.75rem' }],
+        '2xl': ['1.625rem', { lineHeight: '2rem' }],
       },
       borderRadius: {
         'sm': '6px',

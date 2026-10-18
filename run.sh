@@ -10,6 +10,13 @@ cd "$DIR"
 # Activate virtual environment
 source venv/bin/activate
 
+# Automatically load environment variables if .env exists
+if [ -f .env ]; then
+    set -a
+    source .env
+    set +a
+fi
+
 echo "=========================================================="
 echo " Starting Autovix (FastAPI Backend + React Frontend)"
 echo "=========================================================="
